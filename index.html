@@ -16,6 +16,7 @@
  </nav><button id="help" title="함장 안내" aria-label="함장 안내">?</button><div class="rail-bottom">V.02<br>BRIDGE</div></aside>
  <main class="workspace">
   <header><div class="wordmark">ASTERION <small>FREE CAPTAIN INITIATIVE</small></div><div class="connection"><i></i> CSV 노마드 · 연결 정상</div><div id="clock"></div><button id="save" class="quiet">저장</button></header>
+  <section id="region-news" class="region-news" aria-label="지역별 주요 소식"></section>
   <section id="stats" class="stats" aria-label="핵심 함선 현황"></section>
   <div class="bridge-heading"><div><div class="eyebrow">COMMAND DECK / SECTOR 01</div><h1>아스테리온 항성계<span>.</span></h1></div><button id="current-location-button" data-current-location class="quiet" aria-haspopup="dialog">현재 구역 행동 ↗</button></div>
   <section class="panel system-panel" aria-label="항성계 항법">
@@ -26,7 +27,7 @@
   <footer><span><i class="status-dot"></i> ASTERION BRIDGE SYSTEM <b>02.0</b></span><span>필요한 시스템은 왼쪽 메뉴에서 여세요.</span><button id="reset" class="quiet">새 항해</button></footer>
  </main>
 </div>
-<dialog id="workspace-panel" aria-labelledby="panel-title"><div class="workspace-panel-head"><div><div id="panel-kicker" class="eyebrow"></div><h2 id="panel-title"></h2></div><button id="close-panel" aria-label="패널 닫기" autofocus>✕ <span>ESC</span></button></div><nav id="panel-nav" aria-label="패널 전환"><button data-tab="navigation">항법</button><button data-tab="market">거래소</button><button data-tab="assets">자산</button><button data-tab="comms">통신</button><button data-tab="ship">함선</button><button data-tab="factions">팩션</button><button data-tab="usage">API 사용량</button><button data-tab="log">일지</button></nav><div id="detail"></div><div class="workspace-panel-foot"><span>CSV NOMAD / COMMAND INTERFACE</span><button data-close-panel>항성계로 돌아가기 ↗</button></div></dialog>
+<dialog id="workspace-panel" aria-labelledby="panel-title"><div class="workspace-panel-head"><div><div id="panel-kicker" class="eyebrow"></div><h2 id="panel-title"></h2></div><button id="close-panel" aria-label="패널 닫기" autofocus>✕ <span>ESC</span></button></div><nav id="panel-nav" aria-label="패널 전환"><button data-tab="navigation">항법</button><button data-tab="market">거래소</button><button data-tab="assets">자산</button><button data-tab="comms">통신</button><button data-tab="ship">함선</button><button data-tab="factions">팩션</button><button data-tab="usage">API 사용량</button><button data-tab="log">일지</button><button data-tab="news">소식</button><button id="combat-tab" data-tab="combat" hidden>전투</button></nav><div id="detail"></div><div class="workspace-panel-foot"><span>CSV NOMAD / COMMAND INTERFACE</span><button data-close-panel>항성계로 돌아가기 ↗</button></div></dialog>
 <div id="toast" role="status" aria-live="polite"></div><dialog id="modal"></dialog>
 <script type="module" src="/app.js"></script>
 </body></html>
