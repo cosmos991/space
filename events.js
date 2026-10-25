@@ -1,3 +1,4 @@
+import {usedCargo as used} from './cargo.js';
 import {pushIssue} from './news.js';
 import {gainStanding} from './factions.js';
 import {removeCargo,marketSnapshot,PORTS} from './economy.js';
@@ -35,7 +36,6 @@ export function checkEvent(s,trigger='time'){
  const chance=trigger==='survey'?EVENT_RULES.surveyChance:Math.min(.65,EVENT_RULES.baseTravelChance+(riskZone(s)?.15:0)+(s.hull<50?.08:0));
  if(random(s)>=chance)return false;const options=eligibleEvents(s,trigger);if(!options.length)return false;let roll=random(s)*options.reduce((n,o)=>n+o.weight,0);let id=options.at(-1).id;for(const o of options){roll-=o.weight;if(roll<0){id=o.id;break;}}makeEvent(s,id,trigger);return true;
 }
-const used=s=>Object.values(s.cargo).reduce((a,b)=>a+b,0);
 export function eventChoices(s){
  const id=s.event?.id==='signal'?'rescue':s.event?.id;if(!id)return [];
  const choice=(id,label,detail,reason='')=>({id,label,detail,disabled:!!reason,reason});

@@ -1,3 +1,4 @@
+import {usedCargo as used} from './cargo.js';
 import {shipStats} from './equipment.js';
 // Pure market calculations. No wall clock: only the simulation clock changes markets.
 export const TRADE_GOODS={ore:'광물',food:'식량',tech:'기술 부품'};
@@ -14,7 +15,7 @@ export function marketSnapshot(s,id=s.location){const p=PORTS[id];if(!p)return n
 export function unitPrice(s,id,good,stock=marketSnapshot(s,id)?.stock[good]){const p=PORTS[id];if(!p||!TRADE_GOODS[good])throw Error('알 수 없는 교역 상품입니다.');const g=Object.keys(TRADE_GOODS).indexOf(good),port=Object.keys(PORTS).indexOf(id);const day=Math.floor(s.hours/24);const wave=Math.sin(day*.9+port*1.4+g*2.1)-Math.sin(port*1.4+g*2.1);const scarcity=Math.max(-.25,Math.min(.45,(p.stock[good]-stock)/p.stock[good]*.4));const buy=Math.max(2,Math.round(p.prices[good]*(1+wave*.06+scarcity)));return {buy,sell:Math.max(1,Math.floor(buy*.85))};}
 export function quoteTrade(s,good,quantity,buy){
  const p=PORTS[s.location];if(s.travel||!p)throw Error('교역항에 정박해야 합니다.');if(s.event)throw Error('긴급 상황에 먼저 대응하세요.');if(!TRADE_GOODS[good]||!Number.isInteger(quantity)||quantity<1||quantity>40||typeof buy!=='boolean')throw Error('거래 수량은 1~40t의 정수여야 합니다.');
- const market=marketSnapshot(s),units=s.cargo[good],cargo=Object.values(s.cargo).reduce((a,b)=>a+b,0);
+ const market=marketSnapshot(s),units=s.cargo[good],cargo=used(s);
  if(buy&&quantity>market.stock[good])throw Error('교역소의 상품 재고가 부족합니다.');
  if(buy&&cargo+quantity>40)throw Error('화물칸이 부족합니다. 최대 40t.');
  if(!buy&&quantity>units)throw Error('판매할 화물이 부족합니다.');

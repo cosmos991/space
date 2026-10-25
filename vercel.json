@@ -1,5 +1,5 @@
 {
   "buildCommand": "npm test && npm run build",
   "outputDirectory": "dist",
-  "functions": { "api/comms.js": { "maxDuration": 30, "includeFiles": "{engine,economy,usage,events,communications,world-data,factions,news,combat,equipment}.js" } }
+  "functions": { "api/comms.js": { "maxDuration": 30, "includeFiles": "{engine,economy,usage,events,communications,world-data,factions,news,combat,equipment,missions,cargo}.js" } }
 }
