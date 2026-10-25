@@ -1,3 +1,4 @@
+import {makeEvent} from '../events.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {freshState,trade,contract,survey,tick,resolveEvent,validSave} from '../engine.js';
@@ -25,10 +26,10 @@ test('weighted acquisition cost is removed proportionally on sale',()=>{
 test('contract deliveries and rescue support consume basis without counting as sales',()=>{
  const s=freshState();s.cargo.food=0;trade(s,'food',10,true);const cost=s.economy.costs.food;
  contract(s,'accept');s.location='terra';contract(s,'deliver');assert.equal(s.economy.costs.food,cost-Math.round(cost/2));assert.equal(s.economy.profit,0);
- const before=s.economy.costs.food;tick(s,30);resolveEvent(s,'help');assert.equal(s.economy.costs.food,before-Math.round(before*2/5));assert.equal(s.economy.profit,0);assert.equal(s.economy.ledger.length,1);
+ const before=s.economy.costs.food;makeEvent(s,'rescue');resolveEvent(s,'help');assert.equal(s.economy.costs.food,before-Math.round(before*2/5));assert.equal(s.economy.profit,0);assert.equal(s.economy.ledger.length,1);
 });
 test('recovered cargo has zero acquisition cost and dilutes the average',()=>{
- const s=freshState();trade(s,'ore',4,true);const cost=s.economy.costs.ore;s.location='belt';survey(s);assert.equal(s.cargo.ore,12);assert.equal(s.economy.costs.ore,cost);removeCargo(s,'ore',12);assert.equal(s.economy.costs.ore,0);
+ const s=freshState(123456789);s.world.lastEventAt=0;trade(s,'ore',4,true);const cost=s.economy.costs.ore;s.location='belt';survey(s);assert.equal(s.cargo.ore,12);assert.equal(s.economy.costs.ore,cost);removeCargo(s,'ore',12);assert.equal(s.economy.costs.ore,0);
 });
 test('daily replenishment is lazy, read-only and preserves elapsed-day remainder',()=>{
  const s=freshState();trade(s,'food',30,true);const original=structuredClone(s);s.hours=23;assert.equal(marketSnapshot(s).stock.food,50);
@@ -40,7 +41,7 @@ test('excess stock is gradually consumed and prices follow simulation days',()=>
  const a=unitPrice(freshState(),'haven','tech').buy,b=unitPrice({...freshState(),hours:48},'haven','tech').buy;assert.notEqual(a,b);
 });
 test('old saves migrate without losing progress or inventing historical costs',()=>{
- const s=freshState();delete s.economy;s.hours=41;s.credits=7123;s.cargo.tech=4;assert.ok(validSave(s));migrateEconomy(s);assert.equal(s.hours,41);assert.equal(s.credits,7123);assert.equal(s.cargo.tech,4);assert.equal(s.economy.costs.tech,0);assert.equal(s.economy.markets.terra.updated,41);assert.ok(validSave(s));assert.deepEqual(migrateEconomy(structuredClone(s)),s);
+ const s=freshState();delete s.economy;delete s.world;delete s.comms;s.hours=41;s.credits=7123;s.cargo.tech=4;assert.ok(validSave(s));migrateEconomy(s);assert.equal(s.hours,41);assert.equal(s.credits,7123);assert.equal(s.cargo.tech,4);assert.equal(s.economy.costs.tech,0);assert.equal(s.economy.markets.terra.updated,41);assert.ok(validSave(s));assert.deepEqual(migrateEconomy(structuredClone(s)),s);
 });
 test('save validation rejects corrupted economy instead of loading broken totals',()=>{
  const s=freshState();s.economy.costs.food=-1;assert.equal(validSave(s),false);s.economy.costs.food=0;s.economy.markets.haven.stock.food=NaN;assert.equal(validSave(s),false);
