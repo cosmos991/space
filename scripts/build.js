@@ -5,3 +5,5 @@ console.log('Static bridge built in dist/; API runs as api/comms.js on Vercel.')
 
 await mkdir('dist/assets',{recursive:true});
 await copyFile('assets/nomad.jpg','dist/assets/nomad.jpg');
+
+await copyFile('assets/raider-wireframe.jpg','dist/assets/raider-wireframe.jpg');
