@@ -2,8 +2,8 @@ import http from 'node:http';
 import {readFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import handler from './api/comms.js';
-const files={'/':'index.html','/index.html':'index.html','/style.css':'style.css','/app.js':'app.js','/engine.js':'engine.js','/economy.js':'economy.js','/trading-ui.js':'trading-ui.js'};
-const mime={html:'text/html; charset=utf-8',css:'text/css; charset=utf-8',js:'text/javascript; charset=utf-8'};
+const files={'/':'index.html','/index.html':'index.html','/style.css':'style.css','/app.js':'app.js','/engine.js':'engine.js','/economy.js':'economy.js','/trading-ui.js':'trading-ui.js','/usage.js':'usage.js','/assets/nomad.jpg':'assets/nomad.jpg'};
+const mime={html:'text/html; charset=utf-8',css:'text/css; charset=utf-8',js:'text/javascript; charset=utf-8',jpg:'image/jpeg'};
 const root=fileURLToPath(new URL('.',import.meta.url));
 const server=http.createServer(async(req,res)=>{
  const pathname=new URL(req.url,'http://localhost').pathname;
