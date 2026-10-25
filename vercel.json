@@ -1,5 +1,5 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "functions": { "api/comms.js": { "maxDuration": 30, "includeFiles": "engine.js" } }
+  "functions": { "api/comms.js": { "maxDuration": 30, "includeFiles": "{engine,economy}.js" } }
 }
