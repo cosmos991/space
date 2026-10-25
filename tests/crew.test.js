@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {freshState,migrateState,crewOrder,validSave,tick,depart,service,combatOrder,resolveEvent,missionOrder} from '../engine.js';
-import {CREW_CANDIDATES,crewCapacity,crewBonuses,SHIP_CLASSES} from '../crew-data.js';
+import {CREW_CANDIDATES,crewCapacity,crewBonuses,SHIP_CLASSES,recruitmentPort} from '../crew-data.js';
 import {crewReport,crewMessage,crewSituation,readCrew,crewUnread,crewBond} from '../crew.js';
 import {shipStats,serviceQuote} from '../equipment.js';
 import {makeEvent} from '../events.js';
 import {crewHTML,shipCrewHTML} from '../crew-ui.js';
-const hire=(s,id)=>crewOrder(s,id,'hire');
+const hire=(s,id)=>{const previous=s.location;s.location=recruitmentPort(s,id);try{return crewOrder(s,id,'hire');}finally{s.location=previous;}};
 const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-7,`${a} != ${b}`);
 const quiet=s=>{s.eventAt=1e9;s.world.nextBroadcast=1e9;return s;};
 test('old saves gain an empty two-person scout roster without inventing people or changing assets, mission progress or dialogue',()=>{const s=freshState();delete s.crew;const old=structuredClone(s);assert.ok(validSave(s));migrateState(s);assert.deepEqual({...s,crew:undefined},{...old,crew:undefined});assert.equal(crewCapacity(s),2);assert.equal(s.crew.roster.length,0);assert.equal(s.crew.payroll.owed,0);assert.equal(CREW_CANDIDATES.length,5);assert.deepEqual(SHIP_CLASSES.map(c=>c.capacity),[2,3,4,5,5]);});

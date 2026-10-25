@@ -1,3 +1,4 @@
+import {migrateCrew} from './crew.js';
 import {usedCargo as used} from './cargo.js';
 import {pushIssue} from './news.js';
 import {gainStanding} from './factions.js';
@@ -9,6 +10,7 @@ export function migrateWorld(s){if(!s.world)s.world=freshWorld(0x51f15e+Math.flo
 export function random(s){migrateWorld(s);let x=s.world.rng;x^=x<<13;x^=x>>>17;x^=x<<5;s.world.rng=x>>>0;return s.world.rng/4294967296;}
 const riskZone=s=>['belt','veil','echo'].includes(s.travel?.to||s.location);
 const TYPES={
+ 'crew-rescue':{title:'외곽 탐사정의 조난 신호',text:'소형 탐사정에서 이도현이 구조 요청을 보냈습니다. 구조대의 접근 항로를 확보하면 생존자를 헤이븐으로 이송할 수 있습니다. 구조 후 현지에서 승함을 제안할 수 있습니다.',weight:28},
  raiders:{title:'항로를 차단한 무장 함선',text:'무등록 무장 함선이 항로를 막고 200 CR의 통행료를 요구합니다. 교전하거나 철수를 시도할 수 있습니다.',weight:20},
  rescue:{title:'민간 수송선 구조 요청',text:'민간 수송선이 생명 유지 장치 고장을 알립니다. 보급품을 지원하거나 구조대에 좌표를 중계할 수 있습니다.',weight:30},
  debris:{title:'항로 위 잔해 구름',text:'항로에 파편이 넓게 흩어져 있습니다. 시간을 들여 우회하거나 실드를 소모해 통과할 수 있습니다.',weight:20},
@@ -20,6 +22,7 @@ const TYPES={
 };
 export function eligibleEvents(s,trigger='time'){
  const ids=trigger==='survey'?['cache',...(['echo','veil'].includes(s.location)?['relic']:[])]:s.travel?['rescue','debris','trader','raiders',...(riskZone(s)?['ion']:['patrol'])]:['rescue','cache',...(['echo','veil'].includes(s.location)?['relic']:[])];
+ if(['echo','veil'].includes(s.travel?.to||s.location)&&!s.crew?.recruitment?.rescued&&!s.crew?.roster.some(m=>m.id==='dohyun')&&!s.crew?.records?.dohyun?.met)ids.push('crew-rescue');
  return ids.filter(id=>s.hours-(s.world?.cooldowns[id]??-1000)>=EVENT_RULES.typeCooldown).map(id=>({id,weight:id==='raiders'?(riskZone(s)?28:12):TYPES[id].weight}));
 }
 export function makeEvent(s,id,trigger='time'){
@@ -40,6 +43,7 @@ export function eventChoices(s){
  const id=s.event?.id==='signal'?'rescue':s.event?.id;if(!id)return [];
  const choice=(id,label,detail,reason='')=>({id,label,detail,disabled:!!reason,reason});
  if(id==='raiders')return s.combat?.status==='active'?[]:[choice('fight','교전 태세로 전환','적 선체 70 / 실드 35 · 격퇴 현상금 550 CR'),choice('evade','즉시 철수 시도',s.fuel>=3?'연료 −3 · 탈출 75% · 실패 시 교전':'무추진 탈출 40% · 실패 시 교전'),choice('pay','통행료 지불','200 CR 소비 · 교전 없이 이탈',s.credits<200?'200 CR이 필요합니다.':'')];
+ if(id==='crew-rescue')return [choice('rescue','구조대 접근 항로 확보','연료 −2 · 이도현 구조 · 헤이븐에서 영입 가능',s.fuel<2?'연료 2가 필요합니다.':''),choice('ignore','현재 항로 유지','영입 기회는 다음 조난 신호에서 다시 만날 수 있습니다.')];
  if(id==='rescue')return [choice('help','지원 물자 전달','식량 2t 소비 · 보상 260 CR',s.cargo.food<2?'식량 2t이 필요합니다.':''),choice('relay','구조대에 좌표 중계','보상 60 CR · 소모 없음'),choice('ignore','현재 임무에 집중','변화 없이 이탈')];
  if(id==='debris')return [choice('detour','잔해를 피해 우회','항해 시간 +2h'),choice('push','실드로 밀고 통과','실드 −20 · 선체 손상 25% 확률(−6)'),choice('ignore','안전 항로 재계산','항해 시간 +3h · 자원 손실 없음')];
  if(id==='ion')return [choice('detour','폭풍을 우회','연료 −4 · 항해 시간 +2h',s.fuel<4?'연료 4가 필요합니다.':''),choice('push','실드에 동력을 집중해 돌파','실드 −30 · 선체 손상 45% 확률(−10)'),choice('ignore','폭풍이 약해질 때까지 대기','항해 시간 +4h · 자원 손실 없음')];
@@ -53,6 +57,7 @@ export function applyEventChoice(s,action){
  if(!s.event)throw Error('활성 사건이 없습니다.');const option=eventChoices(s).find(c=>c.id===action);if(!option)throw Error('유효하지 않은 대응입니다.');if(option.disabled)throw Error(option.reason);
  const e=s.event,id=e.id==='signal'?'rescue':e.id;let outcome=option.label+' 완료.';const delay=h=>{if(s.travel){s.travel.total+=h;s.travel.remaining+=h;}else s.eventAt=Math.max(s.eventAt,s.hours+h);};
  const damage=(shield,hull,chance)=>{s.shield=Math.max(0,s.shield-shield);if(random(s)<chance){s.hull=Math.max(1,s.hull-hull);return `선체 ${hull} 손상.`;}return '선체 손상 없이 통과했습니다.';};
+ if(id==='crew-rescue'&&action==='rescue'){migrateCrew(s);if(s.crew.recruitment.rescued)throw Error('이미 구조한 인물입니다.');s.fuel-=2;s.crew.recruitment.rescued=true;outcome='이도현 구조 지원 완료. 구조대가 헤이븐으로 이송합니다. 헤이븐 거래소에서 계약금 580 CR · 급여 32 CR/일의 승함 제안을 확인하세요.';}
  if(id==='rescue'&&action==='help'){removeCargo(s,'food',2);s.credits+=260;gainStanding(s,'union',15,2);gainStanding(s,'free',0,1);outcome='식량 2t 지원 완료. 구조 감사 보상 260 CR.';}
  if(id==='rescue'&&action==='relay'){s.credits+=60;gainStanding(s,'union',3,1);outcome='구조 좌표 중계 완료. 통신 보상 60 CR.';}
  if(id==='debris'){if(action==='push')outcome='실드 20 소모. '+damage(20,6,.25);else delay(action==='detour'?2:3);}

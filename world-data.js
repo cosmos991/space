@@ -18,7 +18,8 @@ export function availableLocalActions(s,id=s.location){const p=place(id);if(!p)r
  if(type.survey)add('survey',type.survey,'연료 5 · 조사 자료 120 CR · 구역당 3회',(s.survey[id]||0)>=3?'이 구역의 조사를 완료했습니다.':s.fuel<5?'연료 5가 필요합니다.':'');
  if(p.market){add('market',p.type==='planet'?'현지 시장 접속':'정거장 거래소','상품 매매 · 시세·화물 확인');add('fuel','연료 보급',`완충 비용 ${serviceQuote(s,'fuel')} CR`,s.fuel===100?'연료가 가득합니다.':s.credits<serviceQuote(s,'fuel')?'보급 비용이 부족합니다.':'');add('repair','선체 수리',`완전 수리 ${serviceQuote(s,'repair')} CR`,s.hull===100?'선체가 정상입니다.':s.credits<serviceQuote(s,'repair')?'수리 비용이 부족합니다.':'');}
  if(p.type==='station')add('equipment','함선 장비 도크','무기 · 실드 · 엔진 구입 / 장착 / 판매');
- if(p.type==='station')add('crew','승무원 라운지','모집 · 탑승/하선 · 담당 모듈 배치');
+ if(p.market)add('recruitment','현지 인력 중개소','이 장소의 인물 만나기 · 이력 확인 · 승함 계약');
+ if(p.type==='station')add('crew','승무원 관리','탑승/하선 · 담당 모듈 배치 · 개인 대화');
  if(p.type==='station')add('missions','담당자 임무 게시판','팩션 의뢰 검토 · 진행 중인 임무 확인');
  if(p.claim)add('claim','자동 채굴 전초기지 건설','2,000 CR · 시간당 9 CR',s.outpost?'이미 전초기지를 소유하고 있습니다.':!s.survey.belt?'광맥을 먼저 탐사하세요.':s.credits<2000?'2,000 CR이 필요합니다.':'');
  if(id==='forge')add('deliver-ore','헬리오스 광물 조달 납품','광물 10t → 600 CR · 명예 +8 · 헬리오스 신뢰 +4',s.cargo.ore<10?'광물 10t이 필요합니다.':'');
