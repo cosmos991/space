@@ -1,3 +1,4 @@
+import {gainStanding} from './factions.js';
 import {removeCargo,marketSnapshot,PORTS} from './economy.js';
 import {broadcast} from './communications.js';
 export const EVENT_RULES={checkHours:6,minGap:12,typeCooldown:36,baseTravelChance:.28,surveyChance:.35};
@@ -48,12 +49,12 @@ export function applyEventChoice(s,action){
  if(!s.event)throw Error('활성 사건이 없습니다.');const option=eventChoices(s).find(c=>c.id===action);if(!option)throw Error('유효하지 않은 대응입니다.');if(option.disabled)throw Error(option.reason);
  const e=s.event,id=e.id==='signal'?'rescue':e.id;let outcome=option.label+' 완료.';const delay=h=>{if(s.travel){s.travel.total+=h;s.travel.remaining+=h;}else s.eventAt=Math.max(s.eventAt,s.hours+h);};
  const damage=(shield,hull,chance)=>{s.shield=Math.max(0,s.shield-shield);if(random(s)<chance){s.hull=Math.max(1,s.hull-hull);return `선체 ${hull} 손상.`;}return '선체 손상 없이 통과했습니다.';};
- if(id==='rescue'&&action==='help'){removeCargo(s,'food',2);s.credits+=260;outcome='식량 2t 지원 완료. 구조 감사 보상 260 CR.';}
- if(id==='rescue'&&action==='relay'){s.credits+=60;outcome='구조 좌표 중계 완료. 통신 보상 60 CR.';}
+ if(id==='rescue'&&action==='help'){removeCargo(s,'food',2);s.credits+=260;gainStanding(s,'union',15,2);gainStanding(s,'free',0,1);outcome='식량 2t 지원 완료. 구조 감사 보상 260 CR.';}
+ if(id==='rescue'&&action==='relay'){s.credits+=60;gainStanding(s,'union',3,1);outcome='구조 좌표 중계 완료. 통신 보상 60 CR.';}
  if(id==='debris'){if(action==='push')outcome='실드 20 소모. '+damage(20,6,.25);else delay(action==='detour'?2:3);}
  if(id==='ion'){if(action==='push')outcome='실드 30 소모. '+damage(30,10,.45);else{if(action==='detour')s.fuel-=4;delay(action==='detour'?2:4);}}
  if(id==='trader'&&action==='buy'){s.credits-=100;s.cargo.ore+=4;s.economy.costs.ore+=10000;outcome='이동 상인에게 광물 4t 구매. 100 CR 정산.';}
- if(id==='patrol'){if(action==='data'){s.credits+=100;outcome='탐사 자료 공유. 협력 보상 100 CR.';}else delay(action==='papers'?1:2);}
+ if(id==='patrol'){if(action==='data'){s.credits+=100;gainStanding(s,'union',2,1);outcome='탐사 자료 공유. 협력 보상 100 CR.';}else delay(action==='papers'?1:2);}
  if(id==='cache'){if(action==='recover'){s.fuel-=2;s.cargo.tech+=2;outcome='보급 컨테이너에서 기술 부품 2t 회수.';}if(action==='scan'){s.credits+=90;outcome='컨테이너 스캔 자료 90 CR에 판매.';}}
  if(id==='relic'){if(action==='analyze'){s.fuel-=3;if(random(s)<.7){s.credits+=420;outcome='유적 신호 해독 성공. 연구 보상 420 CR.';}else{s.hull=Math.max(1,s.hull-8);outcome='신호 해독 실패. 역류로 선체 8 손상.';}}if(action==='scan'){s.credits+=110;outcome='안전 관측 자료로 110 CR 수령.';}}
  migrateWorld(s);s.world.resolved++;s.world.lastEventAt=s.hours;s.world.cooldowns[id]=s.hours;s.event=null;

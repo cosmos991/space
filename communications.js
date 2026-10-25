@@ -1,7 +1,8 @@
+import {FACTIONS} from './factions.js';
 import {PORTS,unitPrice} from './economy.js';
 export const TOPICS={general:'종합',trade:'교역',safety:'항로 안전',exploration:'탐사'};
 export const CHANNEL_DIRECTORY=[{id:'trade-net',name:'교역 네트워크',topic:'trade'},{id:'safety-net',name:'항로 안전망',topic:'safety'},{id:'explorer-net',name:'탐사자 라운지',topic:'exploration'}];
-const CONTACTS={union:'항성 연합',helios:'헬리오스 기업',free:'자유 항해 연맹'};
+const CONTACTS=Object.fromEntries(FACTIONS.map(f=>[f.id,f.name]));
 const channel=(id,name,kind,topic='general',contact=null,locked=false)=>({id,name,kind,topic,contact,locked,readAt:0,messages:[]});
 export function freshComms(hours=0,chats={}){
  const c={version:1,sequence:0,active:'system',channels:[channel('system','항성계 전체','public','general',null,true),...Object.entries(CONTACTS).map(([id,name])=>channel('dm-'+id,name,'direct','general',id,true))]};
