@@ -18,7 +18,7 @@ export const EQUIPMENT=[
  gear('e-stock','engine','E-1 항행 엔진',1,'common',0,3,[],{speed:1,fuel:1,escape:75},'노마드 기본 장비. 기준 속도와 연료 소모.'),
  gear('e-cruise','engine','C-2 순항 엔진',2,'uncommon',900,3,['haven','freeport'],{speed:1.1,fuel:.9,escape:78},'입문 항해 장비. 속도와 경제성을 소폭 개선합니다.'),
  gear('e-sprint','engine','I-3 요격 추진기',3,'rare',4100,5,['forge'],{speed:1.45,fuel:1.2,escape:88},'빠른 이동과 탈출. 같은 항로에서 연료를 더 소모합니다.'),
- gear('e-range','engine','R-3 장거리 엔진',3,'rare',3900,4,['freeport'],{speed:.95,fuel:.65,escape:72},'최저 연료 소모. 속도와 탈출 능력은 낮습니다.'),
+ gear('e-range','engine','R-3 장거리 엔진',3,'rare',3900,4,['freeport'],{speed:.95,fuel:.65,escape:72},'연료 절약 특화. 속도와 탈출 능력은 낮습니다.'),
  gear('e-vector','engine','V-5 벡터 드라이브',5,'epic',12500,6,['forge'],{speed:1.65,fuel:1.1,escape:94},'최고 속도와 탈출 성능. 전력 배분 부담이 큽니다.'),
  gear('e-horizon','engine','H-5 호라이즌',5,'epic',13500,5,['freeport'],{speed:1.25,fuel:.6,escape:85},'장거리 탐사를 위한 고효율 추진 장치.')
 ];
