@@ -1,0 +1,17 @@
+import http from 'node:http';
+import {readFile} from 'node:fs/promises';
+import {fileURLToPath} from 'node:url';
+import handler from './api/comms.js';
+const files={'/':'index.html','/index.html':'index.html','/style.css':'style.css','/app.js':'app.js','/engine.js':'engine.js'};
+const mime={html:'text/html; charset=utf-8',css:'text/css; charset=utf-8',js:'text/javascript; charset=utf-8'};
+const root=fileURLToPath(new URL('.',import.meta.url));
+const server=http.createServer(async(req,res)=>{
+ const pathname=new URL(req.url,'http://localhost').pathname;
+ if(pathname==='/api/comms'){
+  let chunks=[],size=0;try{for await(const chunk of req){size+=chunk.length;if(size>20000){res.writeHead(413);res.end('Request too large');return;}chunks.push(chunk);}req.body=chunks.length?JSON.parse(Buffer.concat(chunks).toString()):undefined;}catch{res.writeHead(400);res.end('{"error":"Invalid JSON"}');return;}
+  return handler(req,res);
+ }
+ const file=files[pathname];if(!file){res.writeHead(404);res.end('Not found');return;}
+ try{const content=await readFile(root+file);res.writeHead(200,{'Content-Type':mime[file.split('.').at(-1)],'X-Content-Type-Options':'nosniff'});res.end(content);}catch{res.writeHead(500);res.end('Unable to load application');}
+});
+server.listen(Number(process.env.PORT)||3000,'127.0.0.1',()=>console.log(`ASTERION ready at http://localhost:${Number(process.env.PORT)||3000}`));
