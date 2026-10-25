@@ -1,6 +1,6 @@
 # ASTERION development
 
-This is a Korean bridge-command space simulation. Keep the home screen focused on the system map and compact resource indicators. Navigation details, trading, assets, communications, ship status and logs open in dedicated dismissible panels. Preserve existing browser saves.
+This is a Korean bridge-command space simulation. Keep the home screen focused on the system map and compact resource indicators. Navigation details, trading, assets, communications, ship status, crew conversations, faction assignments and logs open in dedicated dismissible panels. Preserve existing browser saves.
 
 ## Validate and deploy
 

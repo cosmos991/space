@@ -1,3 +1,4 @@
+import {serviceQuote} from './equipment.js';
 import {usedCargo,missionCargo} from './cargo.js';
 import {PORTS,TRADE_GOODS,marketSnapshot,unitPrice,quoteTrade,maxTrade,routeOpportunities} from './economy.js';
 const fmt=n=>n.toLocaleString('ko-KR',{maximumFractionDigits:2});
@@ -19,5 +20,5 @@ export function tradingHTML(s,order){
  <p class="hint">표시는 첫 1t의 호가입니다. 대량 매수는 가격을 올리고 매도는 내립니다. 재고는 24시간마다 정상 수준으로 회복하며 시세도 매일 변합니다.</p>
  <details class="trade-section" open><summary>교역 항로 제안 · 5t 기준</summary>${routes.length?routes.map(r=>`<button class="route-suggestion" data-trade-route="${r.to}"><span>${TRADE_GOODS[r.good]} → ${PORTS[r.to].name}<small>${r.hours}h · 연료 ${r.fuel}${r.affordableFuel?'':' · 보급 필요'}</small></span><strong class="gain">+${fmt(r.profit)} CR <small>예상 순익</small></strong></button>`).join(''):'<p class="hint">현재 조건에서 수익이 예상되는 5t 항로가 없습니다. 자금·화물 공간·재고를 확인하세요.</p>'}<p class="hint">현재 시세 기준, 편도 연료비(3 CR/단위)를 차감한 추정입니다. 도착 시세와 기회비용은 달라질 수 있습니다. 클릭하면 목적지만 선택합니다.</p></details>
  ${cargo}${ledger}<details class="trade-section"><summary>항성계 시세 비교</summary><div class="table-scroll"><table class="trade-table"><thead><tr><th>교역항</th>${Object.values(TRADE_GOODS).map(n=>`<th>${n}</th>`).join('')}</tr></thead><tbody>${Object.entries(PORTS).map(([id,port])=>`<tr><td>${port.name}</td>${Object.keys(TRADE_GOODS).map(g=>{const u=unitPrice(s,id,g);return `<td>${u.buy}<br><span class="muted">${u.sell}</span></td>`;}).join('')}</tr>`).join('')}</tbody></table></div><p class="hint">위: 매수가 / 아래: 매도가 · 현재 원격 시세</p></details>
- <div class="actions"><button data-action="fuel" ${s.fuel===100?'disabled':''}>연료 완충 · ${fmt((100-s.fuel)*3)} CR</button><button data-action="repair" ${s.hull===100?'disabled':''}>선체 수리 · ${fmt((100-s.hull)*6)} CR</button></div></div>`;
+ <div class="actions"><button data-action="fuel" ${s.fuel===100?'disabled':''}>연료 완충 · ${fmt(serviceQuote(s,'fuel'))} CR</button><button data-action="repair" ${s.hull===100?'disabled':''}>선체 수리 · ${fmt(serviceQuote(s,'repair'))} CR</button></div></div>`;
 }

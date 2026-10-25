@@ -1,3 +1,4 @@
+import {CREW_CANDIDATES} from './crew-data.js';
 const integer=n=>Number.isSafeInteger(n)&&n>=0;
 export function normalizeUsage(raw){
  if(!raw||!integer(raw.input_tokens)||!integer(raw.output_tokens))return null;
@@ -22,7 +23,7 @@ const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'
 const fmt=n=>Number(n).toLocaleString('ko-KR');
 export function usageHTML(s,scope='today',server={},now=Date.now()){
  const day=usageDay(now),t=scope==='today'?(s.days.find(d=>d.day===day)?.totals||emptyTotals()):s.totals;
- const history=s.history.filter(r=>scope!=='today'||usageDay(r.time)===day),factions={union:'항성 연합',helios:'헬리오스',free:'자유 항해 연맹'};
+ const history=s.history.filter(r=>scope!=='today'||usageDay(r.time)===day),factions={union:'항성 연합',helios:'헬리오스',free:'자유 항해 연맹',...Object.fromEntries(CREW_CANDIDATES.map(c=>['crew:'+c.id,'승무원 '+c.name]))};
  const models=scope==='today'?(s.days.find(d=>d.day===day)?.models||[]):s.models;
  return `<div class="usage-panel"><div class="usage-heading"><div><span class="tag">${server.configured?'AI 연결 준비됨':'AI 연결 대기 / 로컬 사용 가능'}</span><p class="hint">서버 설정 모델 · ${esc(server.model||'확인 중')}</p></div><div class="usage-scope"><button data-usage-scope="today" class="${scope==='today'?'active':''}" aria-pressed="${scope==='today'}">오늘</button><button data-usage-scope="all" class="${scope==='all'?'active':''}" aria-pressed="${scope==='all'}">누적</button></div></div>
  <div class="usage-cards"><div><small>총 요청</small><strong>${fmt(t.requests)} <em>회</em></strong><span>AI ${fmt(t.ai)} · 로컬 ${fmt(t.local)}</span></div><div><small>확인된 토큰</small><strong>${fmt(t.total)}</strong><span>사용량 확인 ${fmt(t.known)}회</span></div><div><small>실패한 요청</small><strong class="${t.failed?'loss':''}">${fmt(t.failed)} <em>회</em></strong><span>토큰 미확인 ${fmt(t.unknown)}회</span></div><div><small>평균 응답 시간</small><strong>${t.requests?(t.latency/t.requests/1000).toFixed(2):'—'} <em>초</em></strong><span>실패·로컬 요청 포함</span></div></div>
