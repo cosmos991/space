@@ -1,0 +1,34 @@
+// Fixed, inspectable equipment: rarity is a handcrafted design, not a random stat roll.
+export const SLOTS={weapon:'무기',shield:'실드',engine:'엔진'};
+export const RARITIES={common:{name:'일반',color:'#a9bac7'},uncommon:{name:'고급',color:'#67ddba'},rare:{name:'희귀',color:'#79aaff'},epic:{name:'영웅',color:'#c79af2'}};
+const gear=(id,slot,name,level,rarity,price,power,stations,stats,desc)=>({id,slot,name,level,rarity,price,power,stations,stats,desc});
+export const EQUIPMENT=[
+ gear('w-stock','weapon','N-1 표준 함포',1,'common',0,3,[],{min:20,max:28,accuracy:88,energy:14,heat:16},'노마드 기본 장비. 안정적인 에너지 효율.'),
+ gear('w-pulse','weapon','P-2 펄스 함포',2,'uncommon',1100,3,['haven','forge'],{min:23,max:31,accuracy:90,energy:16,heat:18},'낮은 전력 부담의 균형형 개량 함포.'),
+ gear('w-rail','weapon','R-3 레일건',3,'rare',4200,5,['forge'],{min:34,max:44,accuracy:82,energy:24,heat:29},'큰 단발 피해. 명중률과 에너지 관리가 필요합니다.'),
+ gear('w-beam','weapon','L-3 추적 광선',3,'rare',4600,4,['haven'],{min:25,max:33,accuracy:97,energy:22,heat:22},'명중률 특화. 레일건보다 낮은 단발 피해.'),
+ gear('w-plasma','weapon','H-5 플라스마 랜스',5,'epic',13500,6,['forge'],{min:42,max:54,accuracy:78,energy:32,heat:37},'최대 화력. 높은 발열로 연속 포격이 어렵습니다.'),
+ gear('w-precision','weapon','V-5 정밀 포대',5,'epic',14500,5,['freeport'],{min:31,max:41,accuracy:98,energy:25,heat:25},'확실한 명중과 지속 사격에 투자한 설계.'),
+ gear('s-stock','shield','S-1 표준 방어막',1,'common',0,3,[],{capacity:100,regen:18},'노마드 기본 장비. 방어 명령으로 재충전.'),
+ gear('s-patrol','shield','S-2 순찰 방어막',2,'uncommon',1000,3,['haven','freeport'],{capacity:120,regen:20},'방어 용량과 복원량을 함께 개선합니다.'),
+ gear('s-bastion','shield','B-3 보루 방어막',3,'rare',4000,5,['haven'],{capacity:175,regen:16},'큰 용량 대신 전력과 느린 회복을 감수합니다.'),
+ gear('s-flux','shield','F-3 순환 방어막',3,'rare',4300,4,['forge','freeport'],{capacity:125,regen:32},'방어 명령을 자주 사용하는 지속전 설계.'),
+ gear('s-aegis','shield','A-5 이지스',5,'epic',13000,6,['haven'],{capacity:220,regen:22},'최고의 초기 방어력. 다른 장비의 전력 배분을 고려하세요.'),
+ gear('s-phoenix','shield','P-5 재생 방어막',5,'epic',14000,5,['freeport'],{capacity:155,regen:42},'최상급 방어 회복. 순간 화력에는 주의가 필요합니다.'),
+ gear('e-stock','engine','E-1 항행 엔진',1,'common',0,3,[],{speed:1,fuel:1,escape:75},'노마드 기본 장비. 기준 속도와 연료 소모.'),
+ gear('e-cruise','engine','C-2 순항 엔진',2,'uncommon',900,3,['haven','freeport'],{speed:1.1,fuel:.9,escape:78},'입문 항해 장비. 속도와 경제성을 소폭 개선합니다.'),
+ gear('e-sprint','engine','I-3 요격 추진기',3,'rare',4100,5,['forge'],{speed:1.45,fuel:1.2,escape:88},'빠른 이동과 탈출. 같은 항로에서 연료를 더 소모합니다.'),
+ gear('e-range','engine','R-3 장거리 엔진',3,'rare',3900,4,['freeport'],{speed:.95,fuel:.65,escape:72},'최저 연료 소모. 속도와 탈출 능력은 낮습니다.'),
+ gear('e-vector','engine','V-5 벡터 드라이브',5,'epic',12500,6,['forge'],{speed:1.65,fuel:1.1,escape:94},'최고 속도와 탈출 성능. 전력 배분 부담이 큽니다.'),
+ gear('e-horizon','engine','H-5 호라이즌',5,'epic',13500,5,['freeport'],{speed:1.25,fuel:.6,escape:85},'장거리 탐사를 위한 고효율 추진 장치.')
+];
+export const equipment=id=>EQUIPMENT.find(g=>g.id===id);
+export const freshEquipment=()=>({version:1,owned:['w-stock','s-stock','e-stock'],equipped:{weapon:'w-stock',shield:'s-stock',engine:'e-stock'}});
+export function migrateEquipment(s){if(s.equipment===undefined)s.equipment=freshEquipment();return s.equipment;}
+export function shipStats(s){const fitted=s?.equipment?.equipped||freshEquipment().equipped;const w=equipment(fitted.weapon)||EQUIPMENT[0],sh=equipment(fitted.shield)||EQUIPMENT[6],e=equipment(fitted.engine)||EQUIPMENT[12];return {weapon:w.stats,maxShield:sh.stats.capacity,shieldRegen:sh.stats.regen,speed:e.stats.speed,fuelFactor:e.stats.fuel,escape:e.stats.escape,power:w.power+sh.power+e.power,powerMax:12};}
+export function validEquipment(e){return e===undefined||(e?.version===1&&Array.isArray(e.owned)&&e.owned.length<=EQUIPMENT.length&&new Set(e.owned).size===e.owned.length&&e.owned.every(id=>!!equipment(id))&&['w-stock','s-stock','e-stock'].every(id=>e.owned.includes(id))&&e.equipped&&Object.keys(SLOTS).every(slot=>e.owned.includes(e.equipped[slot])&&equipment(e.equipped[slot])?.slot===slot)&&shipStats({equipment:e}).power<=12);}
+const STATIONS=['haven','forge','freeport'];
+function dockReason(s){return s.event?'긴급 상황에 먼저 대응하세요.':s.travel?'항해 중에는 장비를 변경할 수 없습니다.':!STATIONS.includes(s.location)?'정거장 정비 도크에 정박해야 합니다.':'';}
+export function gearStatus(s,id,action){const g=equipment(id),e=s.equipment||freshEquipment();let reason=dockReason(s);if(!g)return {reason:'알 수 없는 장비입니다.',eligible:false};if(!reason&&action==='buy'){if(e.owned.includes(id))reason='이미 보유한 장비입니다.';else if(!g.stations.includes(s.location))reason='이 정거장에서는 판매하지 않습니다.';else if(s.credits<g.price)reason='보유 자금이 부족합니다.';}else if(!reason&&action==='equip'){if(!e.owned.includes(id))reason='먼저 구입해야 합니다.';else if(e.equipped[g.slot]===id)reason='장착 중입니다.';else if(shipStats(s).power-equipment(e.equipped[g.slot]).power+g.power>12)reason='리액터 전력 12를 초과합니다. 다른 슬롯의 전력을 줄이세요.';}else if(!reason&&action==='sell'){if(!e.owned.includes(id))reason='보유하지 않은 장비입니다.';else if(e.equipped[g.slot]===id)reason='먼저 다른 장비로 교체하세요.';else if(!g.price)reason='기본 지급 장비는 판매할 수 없습니다.';}else if(!['buy','equip','sell'].includes(action))reason='알 수 없는 장비 명령입니다.';return {reason,eligible:!reason};}
+export function manageEquipment(s,id,action){const status=gearStatus(s,id,action);if(!status.eligible)throw Error(status.reason);const e=migrateEquipment(s),g=equipment(id);if(action==='buy'){s.credits-=g.price;e.owned.push(id);}if(action==='equip'){e.equipped[g.slot]=id;s.shield=Math.min(s.shield,shipStats(s).maxShield);}if(action==='sell'){e.owned=e.owned.filter(x=>x!==id);s.credits+=Math.floor(g.price*.6);}return `${g.name} ${action==='buy'?`구입 · ${g.price} CR`:action==='equip'?'장착 완료':`판매 · ${Math.floor(g.price*.6)} CR`}`;}
+export function weaponMode(s,burst=false){const w=shipStats(s).weapon;return {min:burst?Math.round(w.min*1.75):w.min,max:burst?Math.round(w.max*12/7):w.max,accuracy:w.accuracy-(burst?20:0),energy:burst?Math.round(w.energy*30/14):w.energy,heat:burst?w.heat*2:w.heat};}

@@ -9,6 +9,7 @@
   <button data-tab="market" aria-haspopup="dialog" aria-controls="workspace-panel" aria-label="거래소" title="거래소"><span>⇄</span><small>거래소</small></button>
   <button data-tab="assets" aria-haspopup="dialog" aria-controls="workspace-panel" aria-label="자산 관리" title="자산 관리"><span>▦</span><small>자산</small></button>
   <button data-tab="comms" aria-haspopup="dialog" aria-controls="workspace-panel" aria-label="세력 통신" title="세력 통신"><span>◉</span><small>통신</small></button>
+  <button data-tab="equipment" aria-haspopup="dialog" aria-controls="workspace-panel" aria-label="함선 장비 도크" title="함선 장비 도크"><span>⚙</span><small>장비</small></button>
   <button data-tab="ship" aria-haspopup="dialog" aria-controls="workspace-panel" aria-label="함선 상태" title="함선 상태"><span>⟁</span><small>함선</small></button>
   <button data-tab="factions" aria-haspopup="dialog" aria-controls="workspace-panel" aria-label="주요 팩션" title="주요 팩션"><span>⚑</span><small>팩션</small></button>
   <button data-tab="usage" aria-haspopup="dialog" aria-controls="workspace-panel" aria-label="API 사용량" title="API 사용량"><span>▥</span><small>API</small></button>
@@ -27,7 +28,7 @@
   <footer><span><i class="status-dot"></i> ASTERION BRIDGE SYSTEM <b>02.0</b></span><span>필요한 시스템은 왼쪽 메뉴에서 여세요.</span><button id="reset" class="quiet">새 항해</button></footer>
  </main>
 </div>
-<dialog id="workspace-panel" aria-labelledby="panel-title"><div class="workspace-panel-head"><div><div id="panel-kicker" class="eyebrow"></div><h2 id="panel-title"></h2></div><button id="close-panel" aria-label="패널 닫기" autofocus>✕ <span>ESC</span></button></div><nav id="panel-nav" aria-label="패널 전환"><button data-tab="navigation">항법</button><button data-tab="market">거래소</button><button data-tab="assets">자산</button><button data-tab="comms">통신</button><button data-tab="ship">함선</button><button data-tab="factions">팩션</button><button data-tab="usage">API 사용량</button><button data-tab="log">일지</button><button data-tab="news">소식</button><button id="combat-tab" data-tab="combat" hidden>전투</button></nav><div id="detail"></div><div class="workspace-panel-foot"><span>CSV NOMAD / COMMAND INTERFACE</span><button data-close-panel>항성계로 돌아가기 ↗</button></div></dialog>
+<dialog id="workspace-panel" aria-labelledby="panel-title"><div class="workspace-panel-head"><div><div id="panel-kicker" class="eyebrow"></div><h2 id="panel-title"></h2></div><button id="close-panel" aria-label="패널 닫기" autofocus>✕ <span>ESC</span></button></div><nav id="panel-nav" aria-label="패널 전환"><button data-tab="navigation">항법</button><button data-tab="market">거래소</button><button data-tab="assets">자산</button><button data-tab="comms">통신</button><button data-tab="ship">함선</button><button data-tab="equipment">장비</button><button data-tab="factions">팩션</button><button data-tab="usage">API 사용량</button><button data-tab="log">일지</button><button data-tab="news">소식</button><button id="combat-tab" data-tab="combat" hidden>전투</button></nav><div id="detail"></div><div class="workspace-panel-foot"><span>CSV NOMAD / COMMAND INTERFACE</span><button data-close-panel>항성계로 돌아가기 ↗</button></div></dialog>
 <div id="toast" role="status" aria-live="polite"></div><dialog id="modal"></dialog>
 <script type="module" src="/app.js"></script>
 </body></html>
