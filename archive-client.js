@@ -1,3 +1,4 @@
+import {createBundle} from './save-bundle.js';
 import {validArchive,validObject} from './archive-schema.js';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export async function archiveRequest(code,action,body){
@@ -5,6 +6,7 @@ export async function archiveRequest(code,action,body){
  const data=await response.json();if(!response.ok)throw Error(data.error||'클라우드 요청 실패');return data;
 }
 export async function saveArchive(code,state,records,settings,onProgress=()=>{}){
+ createBundle(state,records,settings);
  const images=[];let done=0,total=records.reduce((n,r)=>n+r.versions.length,0);
  for(const r of records){const versions=[];for(const v of r.versions){const uploaded=await archiveRequest(code,'upload',{action:'upload',image:v.data});if(!validObject(uploaded.object))throw Error('이미지 업로드 결과가 유효하지 않습니다.');const {data,...meta}=v;versions.push({...meta,object:uploaded.object});onProgress('이미지 보관 '+(++done)+' / '+total);}images.push({key:r.key,active:r.active,versions});}
  const archive={version:1,state:structuredClone(state),images,settings:structuredClone(settings)};
