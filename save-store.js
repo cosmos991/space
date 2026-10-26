@@ -1,0 +1,6 @@
+import {validSave,migrateState} from './engine.js';
+export const SAVE_KEY='asterion-save-v1';
+export function decodeSave(raw){if(typeof raw!=='string'||raw.length>3000000)throw Error('저장 파일의 크기나 형식이 올바르지 않습니다.');const s=JSON.parse(raw);if(!validSave(s))throw Error('저장 기록 검증에 실패했습니다. 원본 기록은 유지됩니다.');return migrateState(s);}
+export function readProgress(storage){let raw;try{raw=storage.getItem(SAVE_KEY);if(raw===null)return {state:null};return {state:decodeSave(raw)};}catch(error){try{const backup=storage.getItem(SAVE_KEY+'-backup');if(backup)return {state:decodeSave(backup),warning:'최근 기록을 읽지 못해 이전 자동 백업을 불러왔습니다.',blocked:true};}catch{}return {state:null,warning:'기존 저장 기록을 불러오지 못했습니다. 저장·불러오기에서 복원하세요. 기존 원본은 보존합니다.',blocked:true};}}
+export function writeProgress(storage,state,{replace=false}={}){const raw=JSON.stringify(state);decodeSave(raw);const previous=storage.getItem(SAVE_KEY);if(previous!==null&&previous!==raw){try{decodeSave(previous);storage.setItem(SAVE_KEY+'-backup',previous);}catch(error){if(!replace)throw Error('기존 저장본을 읽지 못해 덮어쓰기를 중단했습니다. 파일 또는 저장 슬롯을 불러오세요.');storage.setItem(SAVE_KEY+'-unreadable',previous);}}storage.setItem(SAVE_KEY,raw);if(storage.getItem(SAVE_KEY)!==raw)throw Error('저장 결과를 확인하지 못했습니다.');}
+export const slotKey=n=>{if(![1,2,3].includes(n))throw Error('저장 슬롯을 확인하세요.');return SAVE_KEY+'-slot-'+n;};
