@@ -6,6 +6,7 @@ export function systemMapHTML(s,selected){
  const nodes=placesFor(s).map(p=>{const here=!s.travel&&s.location===p.id;let icon='';
   if(p.type==='star')icon=`<circle class="star-glow" cx="${p.x}" cy="${p.y}" r="65" fill="url(#sun)"/><circle cx="${p.x}" cy="${p.y}" r="13" fill="#efd397"/>`;
   else if(p.type==='planet')icon=`<circle cx="${p.x}" cy="${p.y}" r="14" fill="url(#planet)" stroke="${p.color}" stroke-width=".8"/><ellipse cx="${p.x}" cy="${p.y}" rx="21" ry="6" fill="none" stroke="${p.color}" opacity=".4" transform="rotate(-25 ${p.x} ${p.y})"/>`;
+  else if(p.type==='gate')icon=`<ellipse cx="${p.x}" cy="${p.y}" rx="12" ry="21" fill="#8de8ff18" stroke="${p.color}" stroke-width="3"/><ellipse cx="${p.x}" cy="${p.y}" rx="6" ry="14" fill="#8de8ff35"/>`;
   else if(p.type==='station')icon=`<path d="M${p.x-8} ${p.y-8}h16v16h-16z" fill="#152e39" stroke="${p.color}" transform="rotate(45 ${p.x} ${p.y})"/><circle cx="${p.x}" cy="${p.y}" r="3" fill="${p.color}"/>`;
   else if(p.type==='belt')icon=`<g fill="${p.color}"><circle cx="${p.x-8}" cy="${p.y-3}" r="5"/><circle cx="${p.x+5}" cy="${p.y-8}" r="3"/><circle cx="${p.x+7}" cy="${p.y+6}" r="6"/><circle cx="${p.x-6}" cy="${p.y+10}" r="2"/></g>`;
   else icon=`<circle cx="${p.x}" cy="${p.y}" r="13" fill="${p.color}15" stroke="${p.color}" stroke-dasharray="2 3"/><text x="${p.x}" y="${p.y+4}" text-anchor="middle" style="fill:${p.color};font-size:14px">${p.type==='ruin'?'◇':'≈'}</text>`;

@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {freshState,trade,migrateState,validSave} from '../engine.js';
-import {PLACES} from '../world-data.js';
+import {placesFor} from '../world-data.js';
 import {pushIssue,regionalIssues,tickerHTML} from '../news.js';
-test('regional overview covers every location and is read-only',()=>{const s=freshState(12),before=structuredClone(s);const news=regionalIssues(s);assert.equal(news.length,PLACES.length);assert.equal(new Set(news.map(n=>n.region)).size,PLACES.length);assert.deepEqual(s,before);});
+test('regional overview covers every location and is read-only',()=>{const s=freshState(12),before=structuredClone(s);const news=regionalIssues(s);assert.equal(news.length,placesFor(s).length);assert.equal(new Set(news.map(n=>n.region)).size,placesFor(s).length);assert.deepEqual(s,before);});
 test('market shortage headline uses actual remaining stock',()=>{const s=freshState(12);trade(s,'food',35,true);const item=regionalIssues(s).find(n=>n.region==='haven');assert.equal(item.level,'warning');assert.match(item.title,/45t/);});
 test('news replaces matching situation keys and expires by game time only',()=>{const s=freshState(12);pushIssue(s,{region:'terra',key:'safety',title:'항로 경보',level:'danger',duration:12});assert.equal(regionalIssues(s)[0].title,'항로 경보');pushIssue(s,{region:'terra',key:'safety',title:'경보 해제',duration:3});assert.equal(s.news.items.length,1);assert.match(regionalIssues(s).find(n=>n.region==='terra').title,/경보 해제/);s.hours=3;assert.ok(!regionalIssues(s).some(n=>n.title==='경보 해제'));});
 test('bounded persisted news survives JSON saves and old saves gain empty news safely',()=>{const s=freshState(12);for(let i=0;i<50;i++)pushIssue(s,{region:'terra',key:'notice'+i,title:'소식 '+i});assert.equal(s.news.items.length,32);assert.ok(validSave(JSON.parse(JSON.stringify(s))));delete s.news;delete s.combat;const before=s.credits;migrateState(s);assert.equal(s.news.items.length,0);assert.equal(s.combat,null);assert.equal(s.credits,before);});

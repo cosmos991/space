@@ -10,7 +10,7 @@ export function locationHTML(s,id,{confirmPurchase=false}={}){
  <h3 class="subhead">${here?'이곳에서 할 수 있는 일':'구역 도착 후 가능한 행동'}</h3><div class="location-actions">${actions.map(a=>`<button data-local-action="${a.id}" ${a.disabled?'disabled':''}><strong>${a.title}</strong><small>${a.detail}</small>${a.reason?`<em>${a.reason}</em>`:''}</button>`).join('')}</div>
  ${here?localMissionsHTML(s,id):''}
  ${p.type==='planet'?planetCard(s,p,here,owned,confirmPurchase):p.type==='station'?'<div class="ownership-note"><strong>공동·기업 정거장 · 구매 불가</strong><p>이 시설은 관할 팩션이 운영합니다. 거래와 서비스를 이용할 수 있지만 정거장 소유권은 매각하지 않습니다.</p></div>':p.type==='star'?'<div class="ownership-note"><strong>안전 관측 궤도</strong><p>항성 표면에 착륙하거나 상품을 거래할 수 없습니다. 관측 자료를 모아 탐사 업적을 쌓으세요.</p></div>':''}
- ${owner?`<button class="location-faction-link" data-open-faction="${owner.id}"><span style="color:${owner.color}">${owner.symbol} ${owner.name}</span><span>팩션 정보 · 신뢰 ${s.diplomacy.reputation[owner.id]} ↗</span></button>`:'<p class="hint">관할이 정해지지 않은 공동 탐사 구역입니다. 새 탐사 자료는 프리포트에서 공유할 수 있습니다.</p>'}
+ ${p.type==='gate'?'<p class="hint">중립 워프망 · 게이트 간 이동은 성간 패널에서 진행합니다.</p>':owner?`<button class="location-faction-link" data-open-faction="${owner.id}"><span style="color:${owner.color}">${owner.symbol} ${owner.name}</span><span>팩션 정보 · 신뢰 ${s.diplomacy.reputation[owner.id]} ↗</span></button>`:'<p class="hint">관할이 정해지지 않은 공동 탐사 구역입니다. 새 탐사 자료는 프리포트에서 공유할 수 있습니다.</p>'}
  <p class="hint">${here?'출항하려면 지도로 돌아가 다른 목적지를 선택하세요.':'현재 구역의 서비스를 이용하려면 상단의 현재 구역 행동을 선택하세요.'}</p></div>`;
 }
 function planetCard(s,p,here,owned,confirm){
