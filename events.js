@@ -11,17 +11,25 @@ export const EVENT_RULES={checkHours:6,minGap:12,typeCooldown:36,baseTravelChanc
 export const EVENT_CATEGORIES={combat:'전투',encounter:'조우',discovery:'발견',hazard:'항로 이상'};
 export const DEFAULT_EVENT_SETTINGS={interval:6,minGap:12,cooldown:36,travelChance:28,surveyChance:35,riskBonus:15,damageBonus:8,warningChance:70,combat:100,encounter:100,discovery:100,hazard:100};
 const ranges={interval:[1,48],minGap:[0,96],cooldown:[0,168],travelChance:[0,100],surveyChance:[0,100],riskBonus:[0,100],damageBonus:[0,100],warningChance:[0,100],combat:[0,300],encounter:[0,300],discovery:[0,300],hazard:[0,300]};
-export const eventCategory=id=>id==='raiders'?'combat':['ion','debris'].includes(id)?'hazard':['cache','relic'].includes(id)?'discovery':'encounter';
+export const eventCategory=id=>id==='raiders'?'combat':['ion','debris','gravity','micrometeor'].includes(id)?'hazard':['cache','relic','probe','wreck','comet'].includes(id)?'discovery':'encounter';
 export const eventSettings=s=>({...DEFAULT_EVENT_SETTINGS,...s.world?.eventSettings});
 export function updateEventSettings(s,values){if(!validSettings(values))throw Error('사건 설정의 숫자 범위를 확인하세요.');migrateWorld(s);s.world.eventSettings={...values};s.eventAt=s.hours+values.interval;}
 function validSettings(v){return v&&Object.keys(v).length===Object.keys(ranges).length&&Object.entries(ranges).every(([k,[a,b]])=>Number.isInteger(v[k])&&v[k]>=a&&v[k]<=b);}
 export function routeWarning(s){const f=s.world?.forecast;return f&&s.travel&&f.from===s.travel.from&&f.to===s.travel.to?f:null;}
-export function activeRouteAlert(s){if(['ion','debris'].includes(s.event?.id))return {id:s.event.id,title:s.event.title,active:true};const f=routeWarning(s);return f?{...f,title:TYPES[f.id].title,active:false}:null;}
+export function activeRouteAlert(s){if(['ion','debris','gravity','micrometeor'].includes(s.event?.id))return {id:s.event.id,title:s.event.title,active:true};const f=routeWarning(s);return f?{...f,title:TYPES[f.id].title,active:false}:null;}
 export function freshWorld(seed=123456789,hours=0){return {version:1,rng:(seed>>>0)||1,lastEventAt:hours-12,cooldowns:{},nextBroadcast:hours+3,resolved:0,checks:0};}
 export function migrateWorld(s){if(!s.world)s.world=freshWorld(0x51f15e+Math.floor(s.hours),s.hours);return s;}
 export function random(s){migrateWorld(s);let x=s.world.rng;x^=x<<13;x^=x>>>17;x^=x<<5;s.world.rng=x>>>0;return s.world.rng/4294967296;}
 const riskZone=s=>['belt','nebula','ruin'].includes(place(s.travel?.to||s.location,s)?.type);
 const TYPES={
+ gravity:{title:'불안정한 중력 항로',text:'전방의 국지 중력 변화가 항로를 휘게 만듭니다. 자세 제어에 연료를 쓰거나 안전한 우회 항로를 선택할 수 있습니다.',weight:14},
+ micrometeor:{title:'고속 미소 운석대',text:'센서가 작은 금속성 운석의 고속 접근을 포착했습니다. 연료를 사용해 회피하거나 실드로 버틸 수 있습니다.',weight:16},
+ tanker:{title:'독립 급유선의 긴급 보급 제안',text:'민간 급유선이 연료를 판매합니다. 정거장보다 비싸지만 먼 항해를 이어갈 수 있습니다.',weight:14},
+ repair:{title:'순회 정비선과의 조우',text:'순회 정비팀이 기술 부품을 받아 선체를 수리하겠다고 제안합니다. 정밀 검사 자료만 제공할 수도 있습니다.',weight:14},
+ convoy:{title:'민간 이주 선단의 항로 요청',text:'새로운 식민지를 향하는 이주 선단이 안전한 항로 자료와 보급품을 요청합니다. 항로 자료를 전달하거나 식량을 나눌 수 있습니다.',weight:16},
+ probe:{title:'수명이 다한 탐사 프로브',text:'구형 탐사 프로브가 마지막 관측 자료를 반복 송신합니다. 접근해 부품을 회수하거나 원격으로 자료를 복사할 수 있습니다.',weight:22},
+ wreck:{title:'폐선의 봉인된 장비실',text:'오래된 무인 폐선에서 기술 장비가 감지됩니다. 회수에는 추진 연료가 필요하고, 불안정한 선체 구조가 위험합니다.',weight:18},
+ comet:{title:'희귀 혜성의 근접 통과',text:'희귀 휘발성 물질을 품은 혜성이 항로를 가로지릅니다. 근접 관측은 가치가 높지만 연료를 소비합니다.',weight:18},
  'crew-rescue':{title:'외곽 탐사정의 조난 신호',text:'소형 탐사정에서 이도현이 구조 요청을 보냈습니다. 구조대의 접근 항로를 확보하면 생존자를 헤이븐으로 이송할 수 있습니다. 구조 후 현지에서 승함을 제안할 수 있습니다.',weight:28},
  raiders:{title:'항로를 차단한 무장 함선',text:'무등록 무장 함선이 항로를 막고 200 CR의 통행료를 요구합니다. 교전하거나 철수를 시도할 수 있습니다.',weight:20},
  rescue:{title:'민간 수송선 구조 요청',text:'민간 수송선이 생명 유지 장치 고장을 알립니다. 보급품을 지원하거나 구조대에 좌표를 중계할 수 있습니다.',weight:30},
@@ -33,7 +41,9 @@ const TYPES={
  relic:{title:'고대 유적의 불규칙 신호',text:'해독 가능한 신호가 포착됐습니다. 정밀 분석은 가치가 높지만 탐사 장비와 선체에 부담을 줄 수 있습니다.',weight:35}
 };
 export function eligibleEvents(s,trigger='time'){
- const ids=trigger==='survey'?['cache',...(['echo','veil'].includes(s.location)?['relic']:[])]:s.travel?['rescue','debris','trader','raiders','cache',...(riskZone(s)?['ion']:['patrol'])]:['rescue','cache',...(['echo','veil'].includes(s.location)?['relic']:[])];
+ const region=place(s.travel?.to||s.location,s),outer=riskZone(s);
+ const discoveries=['cache','probe','comet',...(['ruin','nebula'].includes(region?.type)?['relic','wreck']:[])];
+ const ids=trigger==='survey'?discoveries:s.travel?['rescue','debris','trader','raiders','tanker','repair','convoy','probe',...(outer?['ion','gravity','micrometeor','wreck']:['patrol'])]:['rescue',...discoveries];
  if(['echo','veil'].includes(s.travel?.to||s.location)&&!s.crew?.recruitment?.rescued&&!s.crew?.roster.some(m=>m.id==='dohyun')&&!s.crew?.records?.dohyun?.met)ids.push('crew-rescue');
  return ids.filter(id=>s.hours-(s.world?.cooldowns[id]??-1000)>=eventSettings(s).cooldown).map(id=>({id,weight:id==='raiders'?(riskZone(s)?28:12):TYPES[id].weight})).map(o=>({...o,weight:o.weight*eventSettings(s)[eventCategory(o.id)]/100})).filter(o=>o.weight>0);
 }
@@ -41,7 +51,7 @@ export function makeEvent(s,id,trigger='time'){
  if(!TYPES[id])throw Error('알 수 없는 사건입니다.');migrateWorld(s);
  const e={id,uid:`${id}-${s.world.checks}-${s.hours}`,title:TYPES[id].title,text:TYPES[id].text,location:s.travel?.to||s.location,created:s.hours,trigger};
  if(id==='raiders'){e.enemy={name:['회색 송곳니','블랙 케스트럴','공허의 가시'][Math.floor(random(s)*3)],hull:70,shield:35,reward:550};}s.event=e;
- const region=place(e.location,s);if(region){const from=s.travel?.kind!=='jump'&&s.travel?place(s.travel.from,s):region,t=s.travel?.kind!=='jump'&&s.travel?1-s.travel.remaining/s.travel.total:1;const kind=eventCategory(id)==='hazard'?'hazard':['cache','relic'].includes(id)?'discovery':id==='crew-rescue'?'signal':'ship';s.world.chart=(s.world.chart||[]).filter(p=>p.uid!==e.uid);s.world.chart.unshift({id:'event:'+e.uid,uid:e.uid,eventId:id,kind,title:e.title,location:e.location,x:Math.max(35,Math.min(765,from.x+(region.x-from.x)*t+25)),y:Math.max(65,Math.min(470,from.y+(region.y-from.y)*t-25)),created:s.hours});s.world.chart=s.world.chart.slice(0,30);}
+ const region=place(e.location,s);if(region){const from=s.travel?.kind!=='jump'&&s.travel?place(s.travel.from,s):region,t=s.travel?.kind!=='jump'&&s.travel?1-s.travel.remaining/s.travel.total:1;const kind=eventCategory(id)==='hazard'?'hazard':['cache','relic','probe','wreck','comet'].includes(id)?'discovery':id==='crew-rescue'?'signal':'ship';s.world.chart=(s.world.chart||[]).filter(p=>p.uid!==e.uid);s.world.chart.unshift({id:'event:'+e.uid,uid:e.uid,eventId:id,kind,title:e.title,location:e.location,x:Math.max(35,Math.min(765,from.x+(region.x-from.x)*t+25)),y:Math.max(65,Math.min(470,from.y+(region.y-from.y)*t-25)),created:s.hours});s.world.chart=s.world.chart.slice(0,30);}
  s.world.lastEventAt=s.hours;s.world.cooldowns[id]=s.hours;
  pushIssue(s,{region:e.location,key:'encounter-'+id,title:e.title,level:id==='raiders'?'danger':'warning',duration:24});
  broadcast(s,{author:id==='rescue'?'수송선 리프':'항로 감시망',content:`[사건 수신] ${e.title} · CSV 노마드의 대응 대기.`,topic:id==='trader'?'trade':trigger==='survey'?'exploration':'safety',kind:'report',eventId:e.uid});return e;
@@ -56,6 +66,14 @@ export function checkEvent(s,trigger='time'){
 export function eventChoices(s){
  const id=s.event?.id==='signal'?'rescue':s.event?.id;if(!id)return [];
  const choice=(id,label,detail,reason='')=>({id,label,detail,disabled:!!reason,reason});
+ if(id==='gravity')return [choice('stabilize','추력으로 자세 유지','연료 −5',s.fuel<5?'연료 5가 필요합니다.':''),choice('detour','안정 항로로 우회','항해 시간 +3h'),choice('ignore','중력 변화가 잦아들 때까지 대기','항해 시간 +5h')];
+ if(id==='micrometeor')return [choice('evade','회피 기동','연료 −3 · 항해 시간 +1h',s.fuel<3?'연료 3이 필요합니다.':''),choice('push','실드로 충격 흡수','실드 −25 · 30% 확률 선체 −7'),choice('ignore','밀집 구역을 우회','항해 시간 +3h')];
+ if(id==='tanker')return [choice('refuel','연료 20 보급','240 CR · 최대 20 보급 · 잔여 탱크 용량까지만 충전',s.fuel>=100?'연료가 가득합니다.':s.credits<240?'240 CR이 필요합니다.':''),choice('ignore','급유 제안 거절','변화 없이 항해 계속')];
+ if(id==='repair')return [choice('repair','선체 응급 정비','기술 부품 1t · 선체 +18 (최대 100)',s.hull>=100?'선체가 온전합니다.':s.cargo.tech<1?'기술 부품 1t이 필요합니다.':''),choice('share','진단 자료 제공','보상 45 CR'),choice('ignore','정비 제안 거절','자원 변화 없음')];
+ if(id==='convoy')return [choice('supply','식량을 나누기','식량 −3t · 180 CR · 자유 항해 연맹 신뢰 +2',s.cargo.food<3?'식량 3t이 필요합니다.':''),choice('guide','항로 자료 전송','60 CR · 자유 항해 연맹 신뢰 +1'),choice('ignore','선단과 작별','자원 변화 없음')];
+ if(id==='probe')return [choice('recover','프로브 회수','연료 −2 · 기술 부품 +1t',s.fuel<2?'연료 2가 필요합니다.':used(s)+1>cargoCapacity(s)?'화물 공간 1t이 필요합니다.':''),choice('download','관측 자료 원격 복사','보상 95 CR'),choice('ignore','프로브를 남겨두기','자원 변화 없음')];
+ if(id==='wreck')return [choice('salvage','장비실 인양','연료 −3 · 기술 부품 +3t · 35% 확률 선체 −6',s.fuel<3?'연료 3이 필요합니다.':used(s)+3>cargoCapacity(s)?'화물 공간 3t이 필요합니다.':''),choice('scan','안전 거리에서 선체 스캔','보상 100 CR'),choice('ignore','폐선에서 이탈','자원 변화 없음')];
+ if(id==='comet')return [choice('observe','근접 관측','연료 −4 · 보상 230 CR',s.fuel<4?'연료 4가 필요합니다.':''),choice('record','원격 궤도 기록','보상 70 CR'),choice('ignore','혜성을 지나보내기','자원 변화 없음')];
  if(id==='raiders')return s.combat?.status==='active'?[]:[choice('fight','교전 태세로 전환','적 선체 70 / 실드 35 · 격퇴 현상금 550 CR'),choice('evade','즉시 철수 시도',s.fuel>=3?'연료 −3 · 탈출 75% · 실패 시 교전':'무추진 탈출 40% · 실패 시 교전'),choice('pay','통행료 지불','200 CR 소비 · 교전 없이 이탈',s.credits<200?'200 CR이 필요합니다.':'')];
  if(id==='crew-rescue')return [choice('rescue','구조대 접근 항로 확보','연료 −2 · 이도현 구조 · 헤이븐에서 영입 가능',s.fuel<2?'연료 2가 필요합니다.':''),choice('ignore','현재 항로 유지','영입 기회는 다음 조난 신호에서 다시 만날 수 있습니다.')];
  if(id==='rescue')return [choice('help','지원 물자 전달','식량 2t 소비 · 보상 260 CR',s.cargo.food<2?'식량 2t이 필요합니다.':''),choice('relay','구조대에 좌표 중계','보상 60 CR · 소모 없음'),choice('ignore','현재 임무에 집중','변화 없이 이탈')];
@@ -71,6 +89,14 @@ export function applyEventChoice(s,action){
  if(!s.event)throw Error('활성 사건이 없습니다.');const option=eventChoices(s).find(c=>c.id===action);if(!option)throw Error('유효하지 않은 대응입니다.');if(option.disabled)throw Error(option.reason);
  const e=s.event,id=e.id==='signal'?'rescue':e.id;let outcome=option.label+' 완료.';const delay=h=>{if(s.travel){s.travel.total+=h;s.travel.remaining+=h;}else s.eventAt=Math.max(s.eventAt,s.hours+h);};
  const damage=(shield,hull,chance)=>{s.shield=Math.max(0,s.shield-shield);if(random(s)<chance){s.hull=Math.max(1,s.hull-hull);return `선체 ${hull} 손상.`;}return '선체 손상 없이 통과했습니다.';};
+ if(id==='gravity'){if(action==='stabilize'){s.fuel-=5;outcome='자세 제어 추력으로 중력 이상 구역을 통과했습니다. 연료 5 소모.';}else{delay(action==='detour'?3:5);outcome=action==='detour'?'안정 항로를 확보했습니다. 도착 3시간 지연.':'중력 변화가 약해질 때까지 대기했습니다. 도착 5시간 지연.';}}
+ if(id==='micrometeor'){if(action==='evade'){s.fuel-=3;delay(1);outcome='연료 3을 소모해 운석대를 회피했습니다. 도착 1시간 지연.';}else if(action==='push')outcome='실드로 운석 충격을 흡수했습니다. '+damage(25,7,.3);else{delay(3);outcome='운석 밀집 구역을 우회했습니다. 도착 3시간 지연.';}}
+ if(id==='tanker'&&action==='refuel'){const n=Math.min(20,100-s.fuel);s.credits-=240;s.fuel+=n;outcome=`급유선에 240 CR 지불. 연료 ${n} 보급 완료.`;}
+ if(id==='repair'){if(action==='repair'){const n=Math.min(18,100-s.hull);removeCargo(s,'tech',1);s.hull+=n;outcome=`기술 부품 1t으로 선체 ${n} 복구. 정비 완료.`;}if(action==='share'){s.credits+=45;outcome='진단 자료 제공. 협력 보상 45 CR.';}}
+ if(id==='convoy'){if(action==='supply'){removeCargo(s,'food',3);s.credits+=180;gainStanding(s,'free',0,2);outcome='식량 3t 지원. 감사 보상 180 CR · 자유 항해 연맹 신뢰 +2.';}if(action==='guide'){s.credits+=60;gainStanding(s,'free',0,1);outcome='안전 항로 자료 전송. 60 CR · 자유 항해 연맹 신뢰 +1.';}}
+ if(id==='probe'){if(action==='recover'){s.fuel-=2;s.cargo.tech++;outcome='탐사 프로브 회수. 연료 2 소모 · 기술 부품 1t 확보.';}if(action==='download'){s.credits+=95;outcome='관측 자료 원격 복사 완료. 연구 보상 95 CR.';}}
+ if(id==='wreck'){if(action==='salvage'){s.fuel-=3;s.cargo.tech+=3;outcome='장비실 인양 완료. 연료 3 소모 · 기술 부품 3t 확보. '+damage(0,6,.35);}if(action==='scan'){s.credits+=100;outcome='폐선 구조 자료 전송. 보상 100 CR.';}}
+ if(id==='comet'){if(action==='observe'){s.fuel-=4;s.credits+=230;outcome='혜성 근접 관측 성공. 연료 4 소모 · 연구 보상 230 CR.';}if(action==='record'){s.credits+=70;outcome='원격 궤도 기록 완료. 연구 보상 70 CR.';}}
  if(id==='crew-rescue'&&action==='rescue'){migrateCrew(s);if(s.crew.recruitment.rescued)throw Error('이미 구조한 인물입니다.');s.fuel-=2;s.crew.recruitment.rescued=true;outcome='이도현 구조 지원 완료. 구조대가 헤이븐으로 이송합니다. 헤이븐 거래소에서 계약금 580 CR · 급여 32 CR/일의 승함 제안을 확인하세요.';}
  if(id==='rescue'&&action==='help'){removeCargo(s,'food',2);s.credits+=260;gainStanding(s,'union',15,2);gainStanding(s,'free',0,1);outcome='식량 2t 지원 완료. 구조 감사 보상 260 CR.';}
  if(id==='rescue'&&action==='relay'){s.credits+=60;gainStanding(s,'union',3,1);outcome='구조 좌표 중계 완료. 통신 보상 60 CR.';}
@@ -84,7 +110,7 @@ export function applyEventChoice(s,action){
  pushIssue(s,{region:e.location||s.location,key:'encounter-'+id,title:`${e.title} · ${outcome}`,level:'notice',duration:18});
  broadcast(s,{author:'노마드 항해 보고',content:`${e.title} · ${outcome}`,topic:id==='trader'?'trade':e.trigger==='survey'?'exploration':'safety',kind:'report',eventId:e.uid||null});return outcome;
 }
-export function validWorld(w,hours){return w?.version===1&&(w.urgentSeen===undefined||(Array.isArray(w.urgentSeen)&&w.urgentSeen.length<=120&&w.urgentSeen.every(k=>typeof k==='string'&&k.length<=250)))&&(w.chart===undefined||(Array.isArray(w.chart)&&w.chart.length<=30&&new Set(w.chart.map(p=>p.id)).size===w.chart.length&&w.chart.every(p=>p&&typeof p.id==='string'&&p.id.length<=200&&typeof p.uid==='string'&&p.id==='event:'+p.uid&&TYPES[p.eventId]&&['hazard','discovery','signal','ship'].includes(p.kind)&&typeof p.title==='string'&&p.title.length<=200&&typeof p.location==='string'&&p.location.length<=100&&Number.isFinite(p.x)&&p.x>=0&&p.x<=800&&Number.isFinite(p.y)&&p.y>=0&&p.y<=530&&Number.isFinite(p.created)&&p.created>=0&&p.created<=hours)))&&(w.eventSettings===undefined||validSettings(w.eventSettings))&&(w.forecast===undefined||(w.forecast&&['ion','debris'].includes(w.forecast.id)&&typeof w.forecast.from==='string'&&typeof w.forecast.to==='string'&&Number.isFinite(w.forecast.created)&&w.forecast.created>=0&&w.forecast.created<=hours))&&Number.isInteger(w.rng)&&w.rng>0&&w.rng<=4294967295&&Number.isFinite(w.lastEventAt)&&w.lastEventAt<=hours&&Number.isFinite(w.nextBroadcast)&&w.nextBroadcast>=hours&&Number.isInteger(w.resolved)&&w.resolved>=0&&Number.isInteger(w.checks)&&w.checks>=0&&w.cooldowns&&Object.entries(w.cooldowns).every(([id,t])=>TYPES[id]&&Number.isFinite(t)&&t<=hours);}
+export function validWorld(w,hours){return w?.version===1&&(w.urgentSeen===undefined||(Array.isArray(w.urgentSeen)&&w.urgentSeen.length<=120&&w.urgentSeen.every(k=>typeof k==='string'&&k.length<=250)))&&(w.chart===undefined||(Array.isArray(w.chart)&&w.chart.length<=30&&new Set(w.chart.map(p=>p.id)).size===w.chart.length&&w.chart.every(p=>p&&typeof p.id==='string'&&p.id.length<=200&&typeof p.uid==='string'&&p.id==='event:'+p.uid&&TYPES[p.eventId]&&['hazard','discovery','signal','ship'].includes(p.kind)&&typeof p.title==='string'&&p.title.length<=200&&typeof p.location==='string'&&p.location.length<=100&&Number.isFinite(p.x)&&p.x>=0&&p.x<=800&&Number.isFinite(p.y)&&p.y>=0&&p.y<=530&&Number.isFinite(p.created)&&p.created>=0&&p.created<=hours)))&&(w.eventSettings===undefined||validSettings(w.eventSettings))&&(w.forecast===undefined||(w.forecast&&['ion','debris','gravity','micrometeor'].includes(w.forecast.id)&&typeof w.forecast.from==='string'&&typeof w.forecast.to==='string'&&Number.isFinite(w.forecast.created)&&w.forecast.created>=0&&w.forecast.created<=hours))&&Number.isInteger(w.rng)&&w.rng>0&&w.rng<=4294967295&&Number.isFinite(w.lastEventAt)&&w.lastEventAt<=hours&&Number.isFinite(w.nextBroadcast)&&w.nextBroadcast>=hours&&Number.isInteger(w.resolved)&&w.resolved>=0&&Number.isInteger(w.checks)&&w.checks>=0&&w.cooldowns&&Object.entries(w.cooldowns).every(([id,t])=>TYPES[id]&&Number.isFinite(t)&&t<=hours);}
 
 export function validEvent(e,hours){return e==null||(['signal',...Object.keys(TYPES)].includes(e.id)&&typeof e.title==='string'&&typeof e.text==='string'&&e.title.length<=200&&e.text.length<=8000&&(e.id!=='raiders'||(typeof e.uid==='string'&&e.enemy&&typeof e.enemy.name==='string'&&e.enemy.name.length<=100&&['hull','shield','reward'].every(k=>Number.isSafeInteger(e.enemy[k])&&e.enemy[k]>=0)&&e.enemy.hull>0&&e.enemy.hull<=1000&&e.enemy.shield>0&&e.enemy.shield<=1000))&&(e.created===undefined||(Number.isFinite(e.created)&&e.created>=0&&e.created<=hours)));}
 
