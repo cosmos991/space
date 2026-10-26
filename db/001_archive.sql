@@ -8,7 +8,7 @@ create table if not exists public.asterion_archives (
 );
 alter table public.asterion_archives enable row level security;
 revoke all on public.asterion_archives from anon, authenticated;
-grant select, insert on public.asterion_archives to service_role;
+grant select, insert, delete on public.asterion_archives to service_role;
 create index if not exists asterion_archives_created_idx on public.asterion_archives (created_at desc);
 insert into storage.buckets (id,name,public,file_size_limit,allowed_mime_types)
 values ('asterion-art','asterion-art',false,3100000,array['image/png','image/jpeg','image/webp'])

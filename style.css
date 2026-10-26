@@ -98,3 +98,5 @@ button{transition:background .16s ease,border-color .16s ease,box-shadow .16s ea
 .officer-link-card{padding:18px;margin:18px 0;border:1px solid #33555d;border-radius:8px;background:#102832}.officer-link-card label{display:grid;gap:9px;font-size:12px}.officer-link-card input{width:100%;min-width:0;padding:12px;background:#0b1d28;color:#cde2e5;border:1px solid #42636c;border-radius:4px}.officer-preview{margin-top:15px;color:#96b4bc;font-size:12px}.officer-preview img{display:block;max-width:100%;width:200px;height:260px;object-fit:cover;object-position:top;border-radius:8px;border:1px solid #3c6566}.officer-link-card .actions{flex-wrap:wrap;margin-top:12px}
 
 .data-faction-icon img{display:block;width:43px;height:56px;object-fit:cover;object-position:top;border-radius:5px}
+
+.cloud-details,.cloud-usage{padding:18px;border:1px solid #38615c;background:#10312b55;border-radius:8px;margin:18px 0;overflow-wrap:anywhere}.cloud-details pre{white-space:pre-wrap;font:12px/1.8 monospace;overflow-wrap:anywhere}.cloud-image-preview{display:block;max-width:100%;width:240px;max-height:330px;object-fit:contain}.cloud-archive .asset-card button{margin:4px}

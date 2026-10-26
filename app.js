@@ -45,7 +45,7 @@ let imageTarget='person:test-navigator',imagePending=false,imageError='',imageQu
 try{const preferred=sessionStorage.getItem('asterion-image-provider');if(['openai','novelai'].includes(preferred))imageProvider=preferred;}catch{}
 let dataSection='home',dataContact='';
 let imagesReady=Promise.resolve(),imagesLoaded=false;
-let cloud={configured:false,checked:false,busy:false,progress:'',error:'',archives:[],review:''};
+let cloud={configured:false,checked:false,busy:false,progress:'',error:'',archives:[],review:'',details:null,usage:null,deleteReview:''};
 const PROMPT_KEY='asterion-image-prompts-v1';
 function promptSettings(){return {drafts:{...imageDrafts,...Object.fromEntries(Object.entries(getOfficerLinks()).map(([id,url])=>['officer-link:'+id,url]))},negative:{...imageNegative},seeds:{...imageSeeds},provider:imageProvider,positiveBase:getPositiveBase()};}
 function restoreOfficerLinks(){setOfficerLinks(Object.fromEntries(FACTIONS.map(f=>[f.id,imageDrafts['officer-link:'+f.id]||''])));}
@@ -245,13 +245,19 @@ const cloudProgress=text=>{cloud.progress=text;renderCloud();};
 async function currentArchive(){await imagesReady;if(!save())throw Error('현재 브라우저 저장을 먼저 확인하세요.');return saveArchive(accessCode,structuredClone(state),exportWorldImages(state),promptSettings(),cloudProgress);}
 document.addEventListener('input',e=>{if(e.target.id==='cloud-code'){accessCode=e.target.value;try{sessionStorage.setItem('asterion-access',accessCode);}catch{}}});
 document.addEventListener('click',async e=>{
- const b=e.target.closest('[data-cloud-save],[data-cloud-list],[data-cloud-status],[data-cloud-review],[data-cloud-restore],[data-cloud-cancel]');if(!b||cloud.busy)return;
+ const b=e.target.closest('[data-cloud-save],[data-cloud-list],[data-cloud-status],[data-cloud-review],[data-cloud-restore],[data-cloud-cancel],[data-cloud-inspect],[data-cloud-usage],[data-cloud-delete-review],[data-cloud-delete],[data-cloud-delete-cancel],[data-cloud-image]');if(!b||cloud.busy)return;
+ if(b.hasAttribute('data-cloud-delete-cancel')){cloud.deleteReview='';renderCloud();return;}
+ if(b.dataset.cloudDeleteReview){cloud.deleteReview=b.dataset.cloudDeleteReview;renderCloud();return;}
  if(b.hasAttribute('data-cloud-status')){await cloudStatus();return;}
  if(b.hasAttribute('data-cloud-cancel')){cloud.review='';renderCloud();return;}
  if(b.dataset.cloudReview){cloud.review=b.dataset.cloudReview;renderCloud();return;}
  if(b.hasAttribute('data-cloud-save')||b.dataset.cloudRestore){if(imagePending||generating||busy){toast('이미지 생성·탐색·통신이 끝난 뒤 저장·복원하세요.',true);return;}}
  cloud.busy=true;cloud.error='';setSpeed(0);renderCloud();
  try{
+  if(b.dataset.cloudInspect){cloud.previewImage=null;cloudProgress('저장 내용 확인 중…');const data=await archiveRequest(accessCode,'get&id='+encodeURIComponent(b.dataset.cloudInspect));cloud.details={id:b.dataset.cloudInspect,archive:data.archive};}
+  if(b.hasAttribute('data-cloud-usage')){cloudProgress('이미지 저장소 사용량 조회 중…');cloud.usage=(await archiveRequest(accessCode,'usage')).usage;}
+  if(b.dataset.cloudDelete){cloudProgress('선택한 저장본 삭제 중…');await archiveRequest(accessCode,'delete',{action:'delete',id:b.dataset.cloudDelete,confirmId:cloud.deleteReview});if(cloud.details?.id===b.dataset.cloudDelete)cloud.details=null;cloud.deleteReview='';cloud.review='';cloud.usage=null;toast('선택한 클라우드 저장본을 삭제했습니다. 공유 이미지 원본은 유지됩니다.');}
+  if(b.dataset.cloudImage){const result=await archiveRequest(accessCode,'image&object='+encodeURIComponent(b.dataset.cloudImage));if(typeof result.image!=='string'||!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(result.image))throw Error('이미지 응답이 유효하지 않습니다.');cloud.previewImage={object:b.dataset.cloudImage,src:result.image};}
   if(b.hasAttribute('data-cloud-save')){await currentArchive();toast('게임·이미지·프롬프트를 클라우드에 보관했습니다.');}
   if(b.dataset.cloudRestore){
    cloudProgress('선택한 저장본 검증 중…');const loaded=await readArchive(accessCode,b.dataset.cloudRestore,cloudProgress);

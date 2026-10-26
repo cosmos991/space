@@ -18,9 +18,14 @@ export default async function handler(req,res){
  if(!expected.length||expected.length!==actual.length||!timingSafeEqual(expected,actual))return send(res,401,{error:'게임 통신 접근 코드를 확인하세요.'});
  if(!config())return send(res,503,{error:'DB 연결 대기 · Supabase 설정과 초기 SQL 적용이 필요합니다.'});
  const root=process.env.SUPABASE_URL.replace(/\/$/,''),secret=process.env.SUPABASE_SERVICE_ROLE_KEY;
- const request=async(path,options={})=>{const r=await fetch(root+path,{...options,headers:{apikey:secret,Authorization:'Bearer '+secret,...options.headers},signal:AbortSignal.timeout(20000)});if(!r.ok)throw Error('DB 요청에 실패했습니다. 연결 설정·초기 SQL·이미지 저장소를 확인하세요.');return r;};
+ const request=async(path,options={})=>{const r=await fetch(root+path,{...options,headers:{apikey:secret,Authorization:'Bearer '+secret,...options.headers},signal:AbortSignal.timeout(20000)});if(!r.ok&&options.method==='DELETE'&&r.status===403)throw Error('저장본 삭제 권한이 없습니다. Supabase 초기 SQL의 service_role DELETE 권한을 확인하세요.');if(!r.ok)throw Error('DB 요청에 실패했습니다. 연결 설정·초기 SQL·이미지 저장소를 확인하세요.');return r;};
  try{
   if(req.method==='GET'){
+   if(action==='usage'){
+    const countResponse=await request('/rest/v1/asterion_archives?select=id',{method:'HEAD',headers:{Prefer:'count=exact'}}),range=countResponse.headers.get('content-range')||'',count=Number(range.split('/')[1]);let imageBytes=0,imageCount=0,complete=false,unknownSizes=0;const start=Date.now();
+    for(let offset=0;offset<20000&&Date.now()-start<25000;offset+=1000){const r=await request('/storage/v1/object/list/'+bucket,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prefix:'',limit:1000,offset,sortBy:{column:'name',order:'asc'}})}),files=await r.json();if(!Array.isArray(files))throw Error('이미지 용량 조회 결과가 유효하지 않습니다.');for(const file of files){if(!file.id)continue;imageCount++;const size=Number(file.metadata?.size);if(Number.isFinite(size)&&size>=0)imageBytes+=size;else unknownSizes++;}if(files.length<1000){complete=true;break;}}
+    return send(res,200,{usage:{archiveCount:Number.isSafeInteger(count)&&count>=0?count:null,imageCount,imageBytes,complete,unknownSizes,checkedAt:Date.now()}});
+   }
    if(action==='list'){const r=await request('/rest/v1/asterion_archives?select=id,created_at,world_seed,summary&order=created_at.desc&limit=20');return send(res,200,{archives:await r.json()});}
    if(action==='get'){
     const id=q.get('id');if(!validArchiveId(id))return send(res,400,{error:'저장본 ID가 유효하지 않습니다.'});
@@ -42,6 +47,10 @@ export default async function handler(req,res){
    return send(res,400,{error:'지원하지 않는 조회입니다.'});
   }
   let body=req.body;try{if(typeof body==='string')body=JSON.parse(body);}catch{return send(res,400,{error:'잘못된 요청 형식입니다.'});}
+  if(body?.action==='delete'){
+   if(!validArchiveId(body.id)||body.confirmId!==body.id)return send(res,400,{error:'삭제할 저장본 확인이 필요합니다.'});
+   const r=await request('/rest/v1/asterion_archives?id=eq.'+body.id,{method:'DELETE',headers:{Prefer:'return=representation'}}),rows=await r.json();if(!Array.isArray(rows)||!rows.length)return send(res,404,{error:'이미 삭제되었거나 존재하지 않는 저장본입니다.'});return send(res,200,{deleted:body.id,imagesRetained:true});
+  }
   if(body?.action==='upload'){
    const image=imageData(body.image);if(!image)return send(res,400,{error:'저장할 이미지 형식·크기를 확인하세요.'});
    // Content-addressed paths make retries idempotent; bytes at this path are identical.
