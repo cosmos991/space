@@ -30,7 +30,8 @@ selected=state.location;let focusedFaction='union',confirmPurchase=false;
 let combatAnimating=false;
 let selectedCrew=state.crew.roster[0]?.id||CREW_CANDIDATES[0].id,crewView='aboard',crewReview='',crewProfileOpen=false;const crewDrafts={},crewAssignments={};
 let generating=false,generationPreview=false;
-let imageTarget='ship:nomad',imagePending=false,imageError='',imageQuality='low',imageProvider='openai',imageProviders={};const imageDrafts={},imageNegative={},imageSeeds={};
+let imageTarget='ship:nomad',imagePending=false,imageError='',imageQuality='low',imageProvider='novelai',imageProviders={};const imageDrafts={},imageNegative={},imageSeeds={};
+try{const preferred=sessionStorage.getItem('asterion-image-provider');if(['openai','novelai'].includes(preferred))imageProvider=preferred;}catch{}
 let dataSection='home',dataContact='';
 function crewConversationOpen(id=selectedCrew){return (tab==='crew'&&selectedCrew===id)||(tab==='data'&&dataSection==='contacts'&&dataContact===id);}
 let reviewMission='',selectedMission='';
@@ -174,7 +175,7 @@ document.addEventListener('click',async e=>{
  }catch(err){toast(err.message,true);}
 });
 document.addEventListener('keydown',e=>{const el=e.target.closest('[data-portrait-id]');if(el&&['Enter',' '].includes(e.key)){e.preventDefault();openImages('person:'+el.dataset.portraitId);}});
-document.addEventListener('change',e=>{if(e.target.id==='image-provider'){imageProvider=e.target.value;imageError='';renderDetail();return;}if(e.target.id==='image-target'){imageTarget=e.target.value;imageError='';renderDetail();}if(e.target.id==='image-quality')imageQuality=e.target.value;});
+document.addEventListener('change',e=>{if(e.target.id==='image-provider'){imageProvider=e.target.value;try{sessionStorage.setItem('asterion-image-provider',imageProvider);}catch{}imageError='';renderDetail();return;}if(e.target.id==='image-target'){imageTarget=e.target.value;imageError='';renderDetail();}if(e.target.id==='image-quality')imageQuality=e.target.value;});
 document.addEventListener('submit',async e=>{
  if(e.target.id!=='image-generate-form')return;e.preventDefault();if(imagePending)return;
  const target=imageTargets(state).find(t=>t.id===imageTarget);if(!target)return;
@@ -195,3 +196,5 @@ loadImages().then(()=>renderDetail()).catch(err=>toast(err.message,true));
 document.addEventListener('click',async e=>{if(!e.target.closest('[data-image-copy]'))return;try{await navigator.clipboard.writeText($('#image-prompt').value);toast('프롬프트를 복사했습니다.');}catch{toast('복사하지 못했습니다. 프롬프트를 직접 선택해 복사하세요.',true);}});
 
 fetch('/api/images').then(r=>r.json()).then(data=>{imageProviders=data.providers||{};if(tab==='data'&&dataSection==='images')renderDetail();}).catch(()=>{imageProviders={};});
+
+document.addEventListener('click',e=>{if(!e.target.closest('[data-image-default]')||imagePending)return;delete imageDrafts[imageProvider+':'+imageTarget];imageError='';renderDetail();toast('기본 긍정 프롬프트를 불러왔습니다.');});

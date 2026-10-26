@@ -65,3 +65,5 @@
 .contact-avatar img{width:100%;height:100%;object-fit:cover;border-radius:inherit}
 
 .usage-cost{display:grid;gap:8px;padding:20px;margin:16px 0;border:1px solid #43766b;border-radius:8px;background:#173a3333}.usage-cost strong{font-size:30px;color:#a6ffe7}.usage-cost small,.usage-cost span{color:#a8bec7}.usage-cost span{font-size:12px}
+
+.image-studio [hidden]{display:none!important}
