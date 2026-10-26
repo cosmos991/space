@@ -1,3 +1,4 @@
+import {channelLevel,setChannelLevel} from './comms-levels.js';
 import {createUrgentComms} from './urgent-comms.js';
 import {outcomeSnapshot} from './outcome-data.js';
 import {eventResult,combatResult,showResultFeedback} from './result-feedback.js';
@@ -161,16 +162,16 @@ document.addEventListener('change',e=>{if(e.target.dataset.crewAssignment){crewA
 document.addEventListener('submit',async e=>{if(cloud.busy){e.preventDefault();return;}
  if(e.target.id!=='chat-form')return;e.preventDefault();if(busy)return;
  const text=$('#message').value.trim();if(!text)return;setSpeed(0);
- const dm=activeChannel(state);if(dm.kind!=='direct')return;const target=dm.contact,channelId=dm.id,runState=state,started=performance.now(),timestamp=Date.now(),requestId=crypto.randomUUID();
+ const dm=activeChannel(state),isPublic=dm.kind==='public',level=channelLevel(dm);const target=isPublic?'public:'+dm.id:dm.contact,channelId=dm.id,runState=state,started=performance.now(),timestamp=Date.now(),requestId=crypto.randomUUID();
  let metadata=null,ok=false;
- append(state.comms,channelId,{author:'CSV 노마드 · 함장',content:text,role:'user',hours:state.hours});radioDrafts[channelId]='';busy=true;renderDetail();
+ append(state.comms,channelId,{author:'CSV 노마드 · 함장',content:text,role:'user',hours:state.hours});radioDrafts[channelId]='';busy=true;save();renderDetail();
  try{
-  const response=await fetch('/api/comms',{method:'POST',headers:{'Content-Type':'application/json',...(accessCode?{'X-Game-Access-Code':accessCode}:{})},body:JSON.stringify({faction:target,messages:dm.messages.filter(m=>['user','assistant'].includes(m.role)).slice(-10).map(m=>({role:m.role,content:m.content.slice(0,2000)})),context:{missions:(state.missions?.active||[]).map(m=>({template:m.template,progress:m.progress,cargo:m.cargo})),ship:shipStats(state),location:place(state.location,state).name,honor:state.diplomacy.honor,reputation:state.diplomacy.reputation,ownedPlanets:state.diplomacy.ownedPlanets,credits:Math.floor(state.credits),fuel:state.fuel,travel:state.travel?place(state.travel.to,state).name:null,cargo:state.cargo,contract:state.contract,outpost:state.outpost,combat:state.combat?{status:state.combat.status,round:state.combat.round,enemy:state.combat.enemy,energy:state.combat.energy,heat:state.combat.heat}:null,event:state.event?{title:state.event.title,text:state.event.text,choices:eventChoices(state)}:null,market:PORTS[state.location]?Object.fromEntries(Object.keys(GOODS).map(g=>[g,unitPrice(state,state.location,g)])):null}}),signal:AbortSignal.timeout(30000)});
+  const response=await fetch('/api/comms',{method:'POST',headers:{'Content-Type':'application/json',...(accessCode?{'X-Game-Access-Code':accessCode}:{})},body:JSON.stringify({level,...(isPublic?{publicChannel:{name:dm.name,topic:dm.topic}}:{faction:target}),messages:dm.messages.filter(m=>['user','assistant'].includes(m.role)).slice(-10).map(m=>({role:m.role,content:m.content.slice(0,2000)})),context:{missions:(state.missions?.active||[]).map(m=>({template:m.template,progress:m.progress,cargo:m.cargo})),ship:shipStats(state),location:place(state.location,state).name,honor:state.diplomacy.honor,reputation:state.diplomacy.reputation,ownedPlanets:state.diplomacy.ownedPlanets,credits:Math.floor(state.credits),fuel:state.fuel,travel:state.travel?place(state.travel.to,state).name:null,cargo:state.cargo,contract:state.contract,outpost:state.outpost,combat:state.combat?{status:state.combat.status,round:state.combat.round,enemy:state.combat.enemy,energy:state.combat.energy,heat:state.combat.heat}:null,event:state.event?{title:state.event.title,text:state.event.text,choices:eventChoices(state)}:null,market:PORTS[state.location]?Object.fromEntries(Object.keys(GOODS).map(g=>[g,unitPrice(state,state.location,g)])):null}}),signal:AbortSignal.timeout(30000)});
   const data=await response.json();metadata=data;
   if(!response.ok)throw Error(data.error||'통신 서버에 연결할 수 없습니다.');
   if(typeof data.reply!=='string'||!data.reply.trim())throw Error('통신 응답이 비어 있습니다.');ok=true;
   if(state!==runState)return;
-  append(state.comms,channelId,{author:FACTIONS.find(f=>f.id===target).person,content:data.reply,role:'assistant',hours:state.hours});
+  append(state.comms,channelId,{author:isPublic?dm.name+' 교신원':FACTIONS.find(f=>f.id===target).person,content:data.reply,role:'assistant',hours:state.hours,mode:data.mode,model:data.model});
   channel=data.mode==='ai'?'AI 통신 연결':'로컬 시뮬레이션';save();
  }catch(e){
   if(state===runState){append(state.comms,channelId,{author:'통신 시스템',content:`통신 실패: ${e.name==='TimeoutError'?'응답 시간이 초과되었습니다.':e.message} 다시 전송해 주세요.`,role:'system',hours:state.hours});save();}
@@ -315,3 +316,5 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-portrait-z
 
 function resizePersonalViewport(){if(!window.visualViewport||!matchMedia('(max-width:700px)').matches)return;workspacePanel.style.setProperty('--comms-height',window.visualViewport.height+'px');workspacePanel.style.setProperty('--comms-hero-height',Math.max(96,Math.min(280,window.visualViewport.height*.3))+'px');workspacePanel.style.setProperty('--comms-top',window.visualViewport.offsetTop+'px');}
 window.visualViewport?.addEventListener('resize',resizePersonalViewport);window.visualViewport?.addEventListener('scroll',resizePersonalViewport);resizePersonalViewport();
+
+document.addEventListener('change',e=>{if(e.target.id!=='comms-ai-level')return;if(busy)return;act(()=>{setChannelLevel(state,state.comms.active,e.target.value);toast('이 채널의 AI 수준을 저장했습니다. 다음 전송부터 적용됩니다.');});});
