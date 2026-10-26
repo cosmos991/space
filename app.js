@@ -1,3 +1,4 @@
+import {chartListHTML,chartDetailHTML,CHART_FILTERS,chartPoints} from './chart-ui.js';
 import {createBundle,decodeBundle,readBundle,writeBundle} from './save-bundle.js';
 import {decodeSave,readProgress,writeProgress,slotKey} from './save-store.js';
 const PERSONAL_PANELS=['data','ship','crew','assets','equipment'];
@@ -30,6 +31,7 @@ import {PLACES,GOODS,FACTIONS,place,usedCargo,freshState,route,depart,tick,trade
 const $=s=>document.querySelector(s),esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const KEY='asterion-save-v1';let state=freshState(),selected='terra',tab='navigation',speed=0,busy=false,toastTimer,saveWarning=false,channel='확인 중';
 let startupSave;try{startupSave=readProgress(localStorage);}catch{startupSave={blocked:true,warning:'브라우저 저장소에 접근할 수 없습니다. 파일로 저장해 주세요.'};}let saveBlocked=!!startupSave.blocked;if(startupSave.state)state=startupSave.state;
+let chartFilter='all',chartPoint='';
 selected=state.location;let focusedFaction='union',confirmPurchase=false;
 let combatAnimating=false;
 let selectedCrew=state.crew.roster[0]?.id||CREW_CANDIDATES[0].id,crewView='aboard',crewReview='',crewProfileOpen=false;const crewDrafts={},crewAssignments={};
@@ -77,7 +79,7 @@ function renderStats(){const hazard=activeRouteAlert(state);document.body.classL
 const PANEL_META={galaxy:['성간 탐색과 항해','INTERSTELLAR EXPLORATION'],data:['함장 데이터 패드','PERSONAL DATA TERMINAL'],recruitment:['현지 인물과 승함 계약','LOCAL RECRUITMENT'],crew:['승무원과 함내 대화','CREW / PRIVATE COMMS'],missions:['임무와 전담 담당자','FACTION ASSIGNMENTS'],equipment:['함선 장비 도크','SHIP OUTFITTING'],news:['성계 소식','REGIONAL NEWS'],combat:['전투 지휘','TACTICAL COMMAND'],navigation:['구역 정보와 행동','LOCATION SERVICES'],factions:['주요 팩션','FACTION RELATIONS'],market:['거래소','COMMODITY EXCHANGE'],assets:['자산 관리','ASSET MANAGEMENT'],comms:['통신 네트워크','COMMUNICATIONS ARRAY'],ship:['함선 상태','SHIP SYSTEMS'],usage:['API 사용량','API TELEMETRY'],log:['항해 일지','CAPTAIN’S LOG']};
 const workspacePanel=$('#workspace-panel');
 function syncPanelNavigation(){document.querySelectorAll('[data-tab]').forEach(b=>{const active=workspacePanel.open&&b.dataset.tab===tab;b.classList.toggle('active',active);b.setAttribute('aria-expanded',String(active));});document.querySelectorAll('[data-home]').forEach(b=>b.classList.toggle('active',!workspacePanel.open));}
-function openPanel(next){if(['usage','log'].includes(next)){dataSection=next;dataContact='';next='data';}if(!PANEL_META[next])return;if(next==='recruitment'){const candidates=recruitmentCandidates(state);if(!candidates.some(c=>c.id===selectedCrew))selectedCrew=candidates[0]?.id||'';if(selectedCrew){crewOrder(state,selectedCrew,'meet');save();}}if(next==='crew'&&!aboard(state,selectedCrew))selectedCrew=state.crew.roster[0]?.id||'';if(next!=='navigation')confirmPurchase=false;setSpeed(0);tab=next;if(!workspacePanel.open)workspacePanel.showModal();renderDetail();$('#detail').scrollTop=0;}
+function openPanel(next){if(next==='navigation')chartPoint='';if(['usage','log'].includes(next)){dataSection=next;dataContact='';next='data';}if(!PANEL_META[next])return;if(next==='recruitment'){const candidates=recruitmentCandidates(state);if(!candidates.some(c=>c.id===selectedCrew))selectedCrew=candidates[0]?.id||'';if(selectedCrew){crewOrder(state,selectedCrew,'meet');save();}}if(next==='crew'&&!aboard(state,selectedCrew))selectedCrew=state.crew.roster[0]?.id||'';if(next!=='navigation')confirmPurchase=false;setSpeed(0);tab=next;if(!workspacePanel.open)workspacePanel.showModal();renderDetail();$('#detail').scrollTop=0;}
 function closePanel(){detailMotionKey='';for(const motion of detailMotion)motion.cancel();detailMotion=[];cancelCombatEffects();if(workspacePanel.open)workspacePanel.close();syncPanelNavigation();}
 $('#close-panel').onclick=closePanel;
 workspacePanel.addEventListener('close',()=>{cancelCombatEffects();syncPanelNavigation();if(!document.activeElement||document.activeElement===document.body||workspacePanel.contains(document.activeElement))$('#nav [data-home]').focus();});
@@ -85,7 +87,7 @@ workspacePanel.addEventListener('click',e=>{if(e.target!==workspacePanel)return;
 function renderNews(){const issues=regionalIssues(state),signature=JSON.stringify([issues,newsPaused]);if(signature===newsSignature)return;newsSignature=signature;$('#region-news').innerHTML=tickerHTML(issues,newsPaused);}
 function renderMap(){
  $('.bridge-heading h1').textContent=currentSystem(state).name+' 항성계';$('#system-map').setAttribute('aria-label',currentSystem(state).name+' 항성계 지도');$('.map-coordinate').textContent='LOCAL SECTOR / '+placesFor(state).length+' DESTINATIONS · 목적지를 선택하면 항법 패널이 열립니다';
- $('#system-map').innerHTML=systemMapHTML(state,selected);
+ $('#system-map').innerHTML=systemMapHTML(state,selected,{filter:chartFilter,point:chartPoint});$('#chart-controls').innerHTML=chartListHTML(state,chartFilter);
  const current=place(state.location,state),r=state.travel,button=$('#current-location-button');
  if(button){button.disabled=!!r;button.textContent=r?'항해 중 · 목적지 도착 대기':'현재 구역 행동 ↗';}
  $('#travel').innerHTML=r?`<div class="travel-row"><div><small>현재 항로</small><br><strong>${place(r.from,state).name} → ${place(r.to,state).name}</strong></div><small>도착까지 ${Math.ceil(r.remaining)}h · ${speed?'항해 중':'일시정지'}</small></div><div class="progress"><i style="width:${(1-r.remaining/r.total)*100}%"></i></div>`:`<div class="travel-row"><button data-current-location class="current-place-button"><small>현재 위치 · ${LOCATION_TYPES[current.type].name}</small><strong>⌖ ${current.name} <span>구역 행동 →</span></strong></button><span class="tag">${current.market?'정박 · 서비스 이용 가능':'안전 궤도 · 조사 가능'}</span></div>`;
@@ -107,7 +109,7 @@ function renderDetail(){cancelCombatEffects();syncPanelNavigation();if(!workspac
  if(tab==='equipment')html+=equipmentHTML(state,{slot:gearSlot,view:gearView,family:gearFamily});
  if(tab==='news')html+=newsHTML(state);
  if(tab==='combat')html+=combatHTML(state);
- if(tab==='navigation')html+=locationHTML(state,selected,{confirmPurchase});
+ if(tab==='navigation')html+=chartPoint?chartDetailHTML(state,chartPoint):locationHTML(state,selected,{confirmPurchase});
  if(tab==='factions')html+=factionsHTML(state,focusedFaction,{review:reviewMission,selectedMission});
  if(tab==='missions')html+=missionsHTML(state,{factionId:focusedFaction,review:reviewMission,selected:selectedMission});
  if(tab==='market')html+=tradingHTML(state,order);
@@ -272,3 +274,6 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-crew
 });
 
 Promise.all([1,2,3].map(async n=>{const b=await readBundle('slot-'+n);if(b)fullSlots[n]=b;})).then(()=>{if(tab==='data'&&dataSection==='saves')renderDetail();}).catch(error=>toast(error.message,true));
+
+document.addEventListener('click',e=>{const b=e.target.closest('[data-chart-filter],[data-chart-point],[data-chart-track]');if(!b)return;if(b.dataset.chartFilter&&CHART_FILTERS[b.dataset.chartFilter]){chartFilter=b.dataset.chartFilter;renderMap();return;}if(b.dataset.chartPoint){const p=chartPoints(state).find(p=>p.id===b.dataset.chartPoint);if(!p)return;selected=p.location;openPanel('navigation');chartPoint=p.id;renderDetail();renderMap();return;}if(b.dataset.chartTrack){state.missions.tracked=state.missions.tracked===b.dataset.chartTrack?null:b.dataset.chartTrack;save();renderDetail();renderMap();}});
+$('#system-map').addEventListener('keydown',e=>{if(['Enter',' '].includes(e.key)&&e.target.dataset.chartPoint){e.preventDefault();e.target.dispatchEvent(new MouseEvent('click',{bubbles:true}));}});
