@@ -1,3 +1,5 @@
+import {buyTradeProduct} from './faction-shop.js';
+import {equipBadge,badgeLabel} from './factions.js';
 import {chartListHTML,chartDetailHTML,CHART_FILTERS,chartPoints} from './chart-ui.js';
 import {createBundle,decodeBundle,readBundle,writeBundle} from './save-bundle.js';
 import {decodeSave,readProgress,writeProgress,slotKey} from './save-store.js';
@@ -277,3 +279,5 @@ Promise.all([1,2,3].map(async n=>{const b=await readBundle('slot-'+n);if(b)fullS
 
 document.addEventListener('click',e=>{const b=e.target.closest('[data-chart-filter],[data-chart-point],[data-chart-track]');if(!b)return;if(b.dataset.chartFilter&&CHART_FILTERS[b.dataset.chartFilter]){chartFilter=b.dataset.chartFilter;renderMap();return;}if(b.dataset.chartPoint){const p=chartPoints(state).find(p=>p.id===b.dataset.chartPoint);if(!p)return;selected=p.location;openPanel('navigation');chartPoint=p.id;renderDetail();renderMap();return;}if(b.dataset.chartTrack){state.missions.tracked=state.missions.tracked===b.dataset.chartTrack?null:b.dataset.chartTrack;save();renderDetail();renderMap();}});
 $('#system-map').addEventListener('keydown',e=>{if(['Enter',' '].includes(e.key)&&e.target.dataset.chartPoint){e.preventDefault();e.target.dispatchEvent(new MouseEvent('click',{bubbles:true}));}});
+
+document.addEventListener('click',e=>{const b=e.target.closest('[data-faction-product],[data-badge-equip],[data-badge-clear]');if(!b)return;act(()=>{if(b.dataset.factionProduct)toast(buyTradeProduct(state,b.dataset.factionProduct));else{equipBadge(state,b.dataset.badgeEquip||null);toast(badgeLabel(state.diplomacy.equippedBadge));}});});
