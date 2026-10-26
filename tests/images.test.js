@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import handler from '../api/images.js';
+import {shipyardHTML,vesselArt} from '../shipyard-ui.js';
 import {freshState,crewOrder} from '../engine.js';
-import {imageTargets,imagePrompt,imagesHTML,imageSource} from '../image-assets.js';
+import {imageTargets,imagePrompt,imagesHTML,imageSource,novelaiPrompt,resolveImagePrompt,SHIP_NEGATIVE} from '../image-assets.js';
 const response=()=>({setHeader(){},end(text){this.data=JSON.parse(text);}});
 const req=(body={kind:'person',prompt:'성인 우주 항해사',quality:'low'})=>({method:'POST',headers:{'x-game-access-code':'test-code'},body});
 function configure(t){const old={OPENAI_API_KEY:process.env.OPENAI_API_KEY,GAME_ACCESS_CODE:process.env.GAME_ACCESS_CODE};process.env.OPENAI_API_KEY='test-key';process.env.GAME_ACCESS_CODE='test-code';t.after(()=>{for(const [k,v]of Object.entries(old))if(v===undefined)delete process.env[k];else process.env[k]=v;});}
@@ -27,6 +28,24 @@ test('image persistence keeps preview separate, restores originals, survives rel
  await replaceWorldImages(s,[]);assert.equal(imageSource(s,'ship:nomad','original'),'original');await replaceWorldImages(s,snapshot);assert.equal(imageRecord(s,'ship:nomad').active,b);assert.equal(imageSource(s,'ship:nomad'),data);
  await selectImage(s,'ship:nomad',null);assert.equal(imageSource(s,'ship:nomad','original'),'original');
  assert.equal(imageSource(freshState(778),'ship:nomad','original'),'original');
+ const unowned=await addImage(s,'ship:caravan',data,'cargo ship','mock');await selectImage(s,'ship:caravan',unowned);
+ const fleetImages=exportWorldImages(s);await replaceWorldImages(s,[]);await replaceWorldImages(s,fleetImages);await loadImages();
+ assert.equal(imageSource(s,'ship:caravan'),data);assert.ok(vesselArt(s,'caravan').includes(data));assert.equal(s.fleet.owned.length,1);
+ assert.equal(imageSource(freshState(778),'ship:caravan'),'');
  await assert.rejects(addImage(s,'ship:nomad','javascript:alert(1)','x','x'));
  assert.deepEqual(s,before);
+});
+
+test('all released ship designs can generate art before purchase with distinct ship-only prompts and yard entry points',()=>{
+ const s=freshState(),before=structuredClone(s),ships=imageTargets(s).filter(t=>t.kind==='ship');
+ assert.equal(ships.length,5);assert.equal(s.fleet.owned.length,1);
+ const prompts=new Set();
+ for(const ship of ships){
+  const prompt=novelaiPrompt(ship);prompts.add(prompt);
+  assert.match(prompt,/entire spacecraft in frame/);assert.doesNotMatch(prompt,/1girl|artist:|adult woman/);
+  assert.equal(imagePrompt(ship),prompt);assert.equal(resolveImagePrompt(ship,'novelai','my custom hull'),'my custom hull');
+  const html=imagesHTML(s,ship.id);assert.match(html,/함선별 외형·역할 전용/);assert.ok(html.includes(SHIP_NEGATIVE));
+  assert.ok(shipyardHTML(s).includes('data-image-target="'+ship.id+'"'));
+ }
+ assert.equal(prompts.size,5);assert.deepEqual(s,before);
 });
