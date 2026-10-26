@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {freshState,missionOrder,validSave} from '../engine.js';
-import {MISSION_TEMPLATES,missionNextStep,storeMissionBrief} from '../missions.js';
+import {MISSION_TEMPLATES,missionOffers,syncMissions,missionNextStep,storeMissionBrief} from '../missions.js';
 import {missionCargo,usedCargo} from '../cargo.js';
 import {missionsHTML,localMissionsHTML} from '../mission-ui.js';
 import {chartPoints} from '../chart-ui.js';
 import {createBundle,decodeBundle} from '../save-bundle.js';
-const accept=(s,t)=>{const id=t.id+'@0';missionOrder(s,id,'accept');return id;};
+const accept=(s,t)=>{for(let d=0;d<8;d++){s.hours=d*24;s.world.nextBroadcast=1e9;syncMissions(s);const offer=missionOffers(s).find(m=>m.id===t.id);if(offer){missionOrder(s,offer.offerId,'accept');return offer.offerId;}}throw Error('Mission never offered: '+t.id);};
 test('expanded catalogue has 24 unique missions and every non-combat workflow reaches its canonical goal and pays exactly once',()=>{
  assert.equal(MISSION_TEMPLATES.length,24);assert.equal(new Set(MISSION_TEMPLATES.map(t=>t.id)).size,24);
  for(const t of MISSION_TEMPLATES.filter(t=>t.type!=='bounty')){const s=freshState(90),id=accept(s,t),money=s.credits;s.location=missionNextStep(s.missions.active[0],t).target;const step=missionNextStep(s.missions.active[0],t);missionOrder(s,id,step.action);assert.equal(s.credits,money);assert.ok(validSave(s));const next=missionNextStep(s.missions.active[0],t);assert.equal(next.action,'complete');s.location=next.target;missionOrder(s,id,'complete');assert.equal(s.credits,money+t.reward);assert.equal(missionCargo(s),0);assert.throws(()=>missionOrder(s,id,'complete'));assert.ok(validSave(s));}
