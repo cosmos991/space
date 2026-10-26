@@ -58,7 +58,7 @@ workspacePanel.addEventListener('close',()=>{cancelCombatEffects();syncPanelNavi
 workspacePanel.addEventListener('click',e=>{if(e.target!==workspacePanel)return;const r=workspacePanel.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closePanel();});
 function renderNews(){const issues=regionalIssues(state),signature=JSON.stringify([issues,newsPaused]);if(signature===newsSignature)return;newsSignature=signature;$('#region-news').innerHTML=tickerHTML(issues,newsPaused);}
 function renderMap(){
- $('.bridge-heading h1').textContent=currentSystem(state).name+' 항성계';
+ $('.bridge-heading h1').textContent=currentSystem(state).name+' 항성계';$('#system-map').setAttribute('aria-label',currentSystem(state).name+' 항성계 지도');$('.map-coordinate').textContent='LOCAL SECTOR / '+placesFor(state).length+' DESTINATIONS · 목적지를 선택하면 항법 패널이 열립니다';
  $('#system-map').innerHTML=systemMapHTML(state,selected);
  const current=place(state.location,state),r=state.travel,button=$('#current-location-button');
  if(button){button.disabled=!!r;button.textContent=r?'항해 중 · 목적지 도착 대기':'현재 구역 행동 ↗';}

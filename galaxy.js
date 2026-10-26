@@ -5,7 +5,7 @@ export function freshGalaxy(seed=123456789){return {version:1,seed:(seed>>>0)||1
 export function migrateGalaxy(s){if(!s.galaxy)s.galaxy=freshGalaxy(s.world?.rng);return s.galaxy;}
 export const systemAt=(s,id)=>id==='home'?{id:'home',name:'아스테리온',coord:'0,0',entry:'haven',region:'civilized',risk:1}:s.galaxy?.systems[id];
 export const currentSystem=s=>systemAt(s,s.galaxy?.current||'home');
-export function nearbySystems(s){const [x,y]=currentSystem(s).coord.split(',').map(Number);return [[1,0],[-1,0],[0,1],[0,-1]].map(([a,b])=>{const coord=(x+a)+','+(y+b);return {coord,system:coord==='0,0'?systemAt(s,'home'):Object.values(s.galaxy?.systems||{}).find(g=>g.coord===coord)};});}
+export function nearbySystems(s){const [x,y]=currentSystem(s).coord.split(',').map(Number);return [[1,0],[-1,0],[0,1],[0,-1]].map(([a,b])=>{const coord=(x+a)+','+(y+b);return {coord,system:coord==='0,0'?systemAt(s,'home'):Object.values(s.galaxy?.systems||{}).find(g=>g.coord===coord)};}).filter(n=>validCoord(n.coord));}
 function ready(s){if(s.event)throw Error('긴급 상황에 먼저 대응하세요.');if(s.travel)throw Error('현재 항해를 마친 뒤 탐색하세요.');}
 export function updateRules(s,input){const g=migrateGalaxy(s),next={...input,version:g.rules.version+1};if(!validRules(next))throw Error('생성 범위와 분위기 설정을 확인하세요.');g.rules=structuredClone(next);return g.rules;}
 export function beginExploration(s,coord){ready(s);const g=migrateGalaxy(s);if(g.job?.status==='pending')throw Error('이미 탐색 중입니다.');if(!nearbySystems(s).some(n=>n.coord===coord))throw Error('인접한 미확인 좌표를 선택하세요.');if(nearbySystems(s).find(n=>n.coord===coord)?.system)throw Error('이미 발견한 항성계입니다.');if(g.job?.coord===coord&&g.job.status==='failed'){g.job.status='pending';g.job.error='';return structuredClone(g.job);}
