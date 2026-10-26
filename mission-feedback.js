@@ -20,7 +20,10 @@ export function finishMissionFeedback(s,prepared,message){
 export function missionFeedbackHTML(d){return `<article class="mission-receipt ${d.done?'mission-success':'mission-issued'}"><button type="button" class="mission-receipt-close" data-feedback-close aria-label="임무 알림 닫기">✕</button><div class="mission-receipt-signal">${d.done?'MISSION ACCOMPLISHED':'INCOMING ASSIGNMENT'}</div><div class="mission-receipt-stamp" aria-hidden="true">${d.done?'✓':'◇'}</div><h2 id="mission-feedback-title">${d.done?'임무 완료':'임무 하달 · 수락 완료'}</h2><h3>${esc(d.title)}</h3><div class="mission-receipt-officer">${d.portrait?`<img src="${esc(d.portrait)}" referrerpolicy="no-referrer" alt="${esc(d.officer)} 초상화">`:''}<span>${esc(d.faction)}<strong>${esc(d.officer)}</strong></span></div><p class="mission-receipt-message">${esc(d.message)}</p><div class="mission-receipt-rewards" aria-label="${d.done?'지급된 보상':'완료 시 예상 보상'}"><small>${d.done?'보상 지급 완료':'완료 시 보상'}</small><strong>+${Number(d.credits).toLocaleString('ko-KR')} <span>CR</span></strong><span>명예 +${d.honor} · 신뢰 +${d.trust}</span></div>${d.done?`<p class="mission-receipt-rank">${d.promoted?'새로운 등급으로 승급 · ':''}${esc(d.rank)} · ${d.progress}/100</p>`:''}<p class="mission-receipt-next">${esc(d.destination)}</p><button type="button" class="primary mission-receipt-confirm" data-feedback-close autofocus>${d.done?'보상 확인 · 계속':'임무 확인 · 계속'}</button></article>`;}
 export function showMissionFeedback(dialog,data){
  if(!data)return;
- dialog.innerHTML=missionFeedbackHTML(data);
+ showFeedbackDialog(dialog,missionFeedbackHTML(data));
+}
+export function showFeedbackDialog(dialog,html){
+ dialog.innerHTML=html;
  dialog.onclick=e=>{if(e.target.closest('[data-feedback-close]'))dialog.close();else if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close();}};
  if(!dialog.open)dialog.showModal();
 }
