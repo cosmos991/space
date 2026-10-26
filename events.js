@@ -1,12 +1,21 @@
 import {place} from './world-data.js';
 import {portsFor,portFor} from './economy.js';
-import {migrateCrew} from './crew.js';
+import {migrateCrew,crewMessage} from './crew.js';
 import {usedCargo as used} from './cargo.js';
 import {pushIssue} from './news.js';
 import {gainStanding} from './factions.js';
 import {removeCargo,marketSnapshot,PORTS} from './economy.js';
 import {broadcast} from './communications.js';
 export const EVENT_RULES={checkHours:6,minGap:12,typeCooldown:36,baseTravelChance:.28,surveyChance:.35};
+export const EVENT_CATEGORIES={combat:'전투',encounter:'조우',discovery:'발견',hazard:'항로 이상'};
+export const DEFAULT_EVENT_SETTINGS={interval:6,minGap:12,cooldown:36,travelChance:28,surveyChance:35,riskBonus:15,damageBonus:8,warningChance:70,combat:100,encounter:100,discovery:100,hazard:100};
+const ranges={interval:[1,48],minGap:[0,96],cooldown:[0,168],travelChance:[0,100],surveyChance:[0,100],riskBonus:[0,100],damageBonus:[0,100],warningChance:[0,100],combat:[0,300],encounter:[0,300],discovery:[0,300],hazard:[0,300]};
+export const eventCategory=id=>id==='raiders'?'combat':['ion','debris'].includes(id)?'hazard':['cache','relic'].includes(id)?'discovery':'encounter';
+export const eventSettings=s=>({...DEFAULT_EVENT_SETTINGS,...s.world?.eventSettings});
+export function updateEventSettings(s,values){if(!validSettings(values))throw Error('사건 설정의 숫자 범위를 확인하세요.');migrateWorld(s);s.world.eventSettings={...values};s.eventAt=s.hours+values.interval;}
+function validSettings(v){return v&&Object.keys(v).length===Object.keys(ranges).length&&Object.entries(ranges).every(([k,[a,b]])=>Number.isInteger(v[k])&&v[k]>=a&&v[k]<=b);}
+export function routeWarning(s){const f=s.world?.forecast;return f&&s.travel&&f.from===s.travel.from&&f.to===s.travel.to?f:null;}
+export function activeRouteAlert(s){if(['ion','debris'].includes(s.event?.id))return {id:s.event.id,title:s.event.title,active:true};const f=routeWarning(s);return f?{...f,title:TYPES[f.id].title,active:false}:null;}
 export function freshWorld(seed=123456789,hours=0){return {version:1,rng:(seed>>>0)||1,lastEventAt:hours-12,cooldowns:{},nextBroadcast:hours+3,resolved:0,checks:0};}
 export function migrateWorld(s){if(!s.world)s.world=freshWorld(0x51f15e+Math.floor(s.hours),s.hours);return s;}
 export function random(s){migrateWorld(s);let x=s.world.rng;x^=x<<13;x^=x>>>17;x^=x<<5;s.world.rng=x>>>0;return s.world.rng/4294967296;}
@@ -23,9 +32,9 @@ const TYPES={
  relic:{title:'고대 유적의 불규칙 신호',text:'해독 가능한 신호가 포착됐습니다. 정밀 분석은 가치가 높지만 탐사 장비와 선체에 부담을 줄 수 있습니다.',weight:35}
 };
 export function eligibleEvents(s,trigger='time'){
- const ids=trigger==='survey'?['cache',...(['echo','veil'].includes(s.location)?['relic']:[])]:s.travel?['rescue','debris','trader','raiders',...(riskZone(s)?['ion']:['patrol'])]:['rescue','cache',...(['echo','veil'].includes(s.location)?['relic']:[])];
+ const ids=trigger==='survey'?['cache',...(['echo','veil'].includes(s.location)?['relic']:[])]:s.travel?['rescue','debris','trader','raiders','cache',...(riskZone(s)?['ion']:['patrol'])]:['rescue','cache',...(['echo','veil'].includes(s.location)?['relic']:[])];
  if(['echo','veil'].includes(s.travel?.to||s.location)&&!s.crew?.recruitment?.rescued&&!s.crew?.roster.some(m=>m.id==='dohyun')&&!s.crew?.records?.dohyun?.met)ids.push('crew-rescue');
- return ids.filter(id=>s.hours-(s.world?.cooldowns[id]??-1000)>=EVENT_RULES.typeCooldown).map(id=>({id,weight:id==='raiders'?(riskZone(s)?28:12):TYPES[id].weight}));
+ return ids.filter(id=>s.hours-(s.world?.cooldowns[id]??-1000)>=eventSettings(s).cooldown).map(id=>({id,weight:id==='raiders'?(riskZone(s)?28:12):TYPES[id].weight})).map(o=>({...o,weight:o.weight*eventSettings(s)[eventCategory(o.id)]/100})).filter(o=>o.weight>0);
 }
 export function makeEvent(s,id,trigger='time'){
  if(!TYPES[id])throw Error('알 수 없는 사건입니다.');migrateWorld(s);
@@ -35,11 +44,11 @@ export function makeEvent(s,id,trigger='time'){
  broadcast(s,{author:id==='rescue'?'수송선 리프':'항로 감시망',content:`[사건 수신] ${e.title} · CSV 노마드의 대응 대기.`,topic:id==='trader'?'trade':trigger==='survey'?'exploration':'safety',kind:'report',eventId:e.uid});return e;
 }
 export function checkEvent(s,trigger='time'){
- migrateWorld(s);s.world.checks++;if(s.event||s.hours-s.world.lastEventAt<EVENT_RULES.minGap)return false;
+ migrateWorld(s);s.world.checks++;if(s.event)return false;const settings=eventSettings(s),forecast=routeWarning(s);if(forecast){delete s.world.forecast;makeEvent(s,forecast.id,trigger);return true;}delete s.world.forecast;if(s.hours-s.world.lastEventAt<settings.minGap)return false;
  // Port life remains a non-blocking news feed; it never forces a choice while docked.
  if(trigger==='time'&&!s.travel&&portFor(s)){if(random(s)<.1){const market=marketSnapshot(s),good=['ore','food','tech'][Math.floor(random(s)*3)],drop=Math.min(8,market.stock[good]);s.economy.markets[s.location]={updated:market.updated,stock:{...market.stock,[good]:market.stock[good]-drop}};broadcast(s,{author:portFor(s).name+' 거래소',topic:'trade',kind:'report',content:`현지 구매 수요로 ${good==='ore'?'광물':good==='food'?'식량':'기술 부품'} 재고가 ${drop}t 감소했습니다. 거래소의 최신 시세를 확인하세요.`});pushIssue(s,{region:s.location,key:'market',title:`${good==='ore'?'광물':good==='food'?'식량':'기술 부품'} 재고 ${drop}t 감소 · 최신 시세 확인 권장`,level:'warning',duration:18});}return false;}
- const chance=trigger==='survey'?EVENT_RULES.surveyChance:Math.min(.65,EVENT_RULES.baseTravelChance+(riskZone(s)?.15:0)+(s.hull<50?.08:0));
- if(random(s)>=chance)return false;const options=eligibleEvents(s,trigger);if(!options.length)return false;let roll=random(s)*options.reduce((n,o)=>n+o.weight,0);let id=options.at(-1).id;for(const o of options){roll-=o.weight;if(roll<0){id=o.id;break;}}makeEvent(s,id,trigger);return true;
+ const chance=(trigger==='survey'?settings.surveyChance:settings.travelChance===0?0:Math.min(100,settings.travelChance+(riskZone(s)?settings.riskBonus:0)+(s.hull<50?settings.damageBonus:0)))/100;
+ if(random(s)>=chance)return false;const options=eligibleEvents(s,trigger);if(!options.length)return false;let roll=random(s)*options.reduce((n,o)=>n+o.weight,0);let id=options.at(-1).id;for(const o of options){roll-=o.weight;if(roll<0){id=o.id;break;}}if(trigger==='time'&&s.travel&&eventCategory(id)==='hazard'&&s.travel.remaining>settings.interval&&random(s)<settings.warningChance/100){s.world.forecast={id,from:s.travel.from,to:s.travel.to,created:s.hours};const member=s.crew?.roster.find(m=>m.assignment==='navigation')||s.crew?.roster.find(m=>m.assignment==='engineering')||s.crew?.roster[0];const text=`전방 항로에서 ${TYPES[id].title} 징후를 감지했습니다. 다음 사건 판정까지 약 ${settings.interval}시간입니다. 우회 또는 통과 대응을 준비해 주세요.`;if(member){s.world.forecast.reporter=member.id;crewMessage(s,member.id,'npc',text);}broadcast(s,{author:member?'노마드 승무원':'노마드 항로 센서',topic:'safety',content:text,kind:'report'});return false;}makeEvent(s,id,trigger);return true;
 }
 export function eventChoices(s){
  const id=s.event?.id==='signal'?'rescue':s.event?.id;if(!id)return [];
@@ -72,6 +81,9 @@ export function applyEventChoice(s,action){
  pushIssue(s,{region:e.location||s.location,key:'encounter-'+id,title:`${e.title} · ${outcome}`,level:'notice',duration:18});
  broadcast(s,{author:'노마드 항해 보고',content:`${e.title} · ${outcome}`,topic:id==='trader'?'trade':e.trigger==='survey'?'exploration':'safety',kind:'report',eventId:e.uid||null});return outcome;
 }
-export function validWorld(w,hours){return w?.version===1&&Number.isInteger(w.rng)&&w.rng>0&&w.rng<=4294967295&&Number.isFinite(w.lastEventAt)&&w.lastEventAt<=hours&&Number.isFinite(w.nextBroadcast)&&w.nextBroadcast>=hours&&Number.isInteger(w.resolved)&&w.resolved>=0&&Number.isInteger(w.checks)&&w.checks>=0&&w.cooldowns&&Object.entries(w.cooldowns).every(([id,t])=>TYPES[id]&&Number.isFinite(t)&&t<=hours);}
+export function validWorld(w,hours){return w?.version===1&&(w.eventSettings===undefined||validSettings(w.eventSettings))&&(w.forecast===undefined||(w.forecast&&['ion','debris'].includes(w.forecast.id)&&typeof w.forecast.from==='string'&&typeof w.forecast.to==='string'&&Number.isFinite(w.forecast.created)&&w.forecast.created>=0&&w.forecast.created<=hours))&&Number.isInteger(w.rng)&&w.rng>0&&w.rng<=4294967295&&Number.isFinite(w.lastEventAt)&&w.lastEventAt<=hours&&Number.isFinite(w.nextBroadcast)&&w.nextBroadcast>=hours&&Number.isInteger(w.resolved)&&w.resolved>=0&&Number.isInteger(w.checks)&&w.checks>=0&&w.cooldowns&&Object.entries(w.cooldowns).every(([id,t])=>TYPES[id]&&Number.isFinite(t)&&t<=hours);}
 
 export function validEvent(e,hours){return e==null||(['signal',...Object.keys(TYPES)].includes(e.id)&&typeof e.title==='string'&&typeof e.text==='string'&&e.title.length<=200&&e.text.length<=8000&&(e.id!=='raiders'||(typeof e.uid==='string'&&e.enemy&&typeof e.enemy.name==='string'&&e.enemy.name.length<=100&&['hull','shield','reward'].every(k=>Number.isSafeInteger(e.enemy[k])&&e.enemy[k]>=0)&&e.enemy.hull>0&&e.enemy.hull<=1000&&e.enemy.shield>0&&e.enemy.shield<=1000))&&(e.created===undefined||(Number.isFinite(e.created)&&e.created>=0&&e.created<=hours)));}
+
+const settingLabels={interval:'사건 판정 간격(h)',minGap:'사건 사이 최소 간격(h)',cooldown:'동일 사건 재등장 대기(h)',travelChance:'항해 기본 발생률(%)',surveyChance:'탐사 발생률(%)',riskBonus:'외곽 구역 추가 확률(%p)',damageBonus:'선체 50 미만 추가 확률(%p)',warningChance:'항로 이상 사전 감지 확률(%)',combat:'전투 선택 가중치(%)',encounter:'조우 선택 가중치(%)',discovery:'발견 선택 가중치(%)',hazard:'항로 이상 선택 가중치(%)'};
+export function eventSettingsHTML(s){const r=eventSettings(s);return `<section class="generation-settings"><h3>랜덤 사건 설정</h3><p class="hint">판정마다 발생률을 적용한 후, 가능한 사건을 가중치로 선택합니다. 기본 발생률 0%는 항해 사건을 끄며, 분류 가중치 0은 해당 분류를 제외합니다. 외곽·선체 보정은 최대 100%까지 합산합니다. 정박 중 시장 소식은 별도입니다.</p><form id="event-settings-form"><div class="generation-fields">${Object.entries(ranges).map(([k,[min,max]])=>`<label>${settingLabels[k]}<input name="${k}" type="number" min="${min}" max="${max}" step="1" value="${r[k]}" required></label>`).join('')}</div><p class="hint">항로 이상은 사전 감지 시 다음 판정에 실제 사건으로 이어집니다. 남은 항해가 짧으면 즉시 조우합니다. 감지된 사건은 설정 변경 후에도 유지됩니다. 모든 설정은 게임 저장본에 포함됩니다.</p><button class="primary">사건 설정 저장</button></form></section>`;}

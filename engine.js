@@ -9,7 +9,7 @@ import {respondToRaiders,combatTurn,validCombat,startCombat} from './combat.js';
 import {FACTIONS,freshDiplomacy,migrateDiplomacy,gainStanding,validDiplomacy} from './factions.js';
 import {PLACES,place,LOCATION_TYPES,routeFor,planetPurchaseStatus,planetIncome} from './world-data.js';
 export {FACTIONS,PLACES,place};
-import {freshWorld,migrateWorld,random,checkEvent,makeEvent,applyEventChoice,validWorld,validEvent} from './events.js';
+import {eventSettings,freshWorld,migrateWorld,random,checkEvent,makeEvent,applyEventChoice,validWorld,validEvent} from './events.js';
 import {freshComms,migrateComms,broadcast,ambientPost,validComms} from './communications.js';
 import {newEconomy,validEconomy,removeCargo,executeTrade} from './economy.js';
 export const GOODS={ore:'광물',food:'식량',tech:'기술 부품'};
@@ -25,9 +25,9 @@ export function tick(s,hours){
  while(left>0&&!s.event){
   const step=Math.min(left,(Math.floor(s.hours/24)+1)*24-s.hours,s.travel?.remaining??left,Math.max(0,s.eventAt-s.hours),Math.max(0,s.world.nextBroadcast-s.hours));
   s.hours+=step;left=Math.max(0,left-step);s.credits+=step*((s.outpost?9:0)+planetIncome(s));advanceCrew(s,step);crewSituation(s);
-  syncMissions(s);let arrived=false;if(s.travel){s.travel.remaining=Math.max(0,s.travel.remaining-step);if(s.travel.remaining<1e-9){s.location=s.travel.to;if(s.travel.kind==='jump')s.galaxy.current=s.travel.systemTo;s.travel=null;s.shield=shipStats(s).maxShield;arrived=true;crewSituation(s,'arrival');log(s,`${place(s.location,s).name}에 도착했습니다.`,'arrival');broadcast(s,{author:'항성계 관제',content:`CSV 노마드가 ${place(s.location,s).name}에 도착했습니다.`,kind:'report'});}}
+  syncMissions(s);let arrived=false;if(s.travel){s.travel.remaining=Math.max(0,s.travel.remaining-step);if(s.travel.remaining<1e-9){s.location=s.travel.to;if(s.travel.kind==='jump')s.galaxy.current=s.travel.systemTo;s.travel=null;delete s.world.forecast;s.shield=shipStats(s).maxShield;arrived=true;crewSituation(s,'arrival');log(s,`${place(s.location,s).name}에 도착했습니다.`,'arrival');broadcast(s,{author:'항성계 관제',content:`CSV 노마드가 ${place(s.location,s).name}에 도착했습니다.`,kind:'report'});}}
   if(s.hours>=s.world.nextBroadcast){ambientPost(s,random(s));s.world.nextBroadcast=s.hours+3+Math.floor(random(s)*3);}
-  if(s.hours>=s.eventAt){s.eventAt=s.hours+6;if(checkEvent(s)){crewSituation(s,s.event.id==='raiders'?'combat':null);log(s,`${s.event.title} · 대응이 필요합니다.`,'alert');}}
+  if(s.hours>=s.eventAt){s.eventAt=s.hours+eventSettings(s).interval;if(checkEvent(s)){crewSituation(s,s.event.id==='raiders'?'combat':null);log(s,`${s.event.title} · 대응이 필요합니다.`,'alert');}}
   if(arrived)break;
  }
 }
