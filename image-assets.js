@@ -3,7 +3,15 @@ import {knownCrew} from './crew.js';
 import {FACTIONS} from './factions.js';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function imageTargets(s){return [{id:'ship:nomad',kind:'ship',name:'CSV 노마드',description:'백색 장갑, 청록색 엔진의 소형 독립 탐사선. 화물 40t. 실용적인 SF 함선.',original:'/assets/nomad.jpg'},...allPlaces(s).filter(p=>p.type==='planet').map(p=>({id:'planet:'+p.id,kind:'planet',name:p.name,description:p.desc,original:''})),...knownCrew(s).map(c=>({id:'person:'+c.id,kind:'person',name:c.name,description:[c.appearance||'외형 미지정',c.title,c.bio,'성인'].join('. '),original:''})),...FACTIONS.map(f=>({id:'person:faction-'+f.id,kind:'person',name:f.contact.name,description:JSON.stringify(f.contact),original:''}))];}
-export function novelaiPrompt(t){return [t.kind==='person'?'1adult, solo, upper body, full head in frame, space crew uniform, spaceship interior, semi-realistic anime illustration, delicate thin lineart, refined facial features, detailed eyelashes, soft painterly shading, glossy detailed hair, cinematic lighting, warm side lighting, cool teal fill light, subtle rim lighting':t.kind==='planet'?'no humans, planet, outer space, full planet in frame, detailed atmosphere, cinematic lighting, science fiction concept art':'no humans, spaceship, full spacecraft in frame, three-quarter view, white armor, teal engines, outer space, science fiction concept art',t.name,t.description,'detailed, rich muted colors, dark atmospheric background, no text, no watermark'].join('\n');}
+export const NOVELAI_POSITIVE_BASE=`0.8::artist:yoya yogurt,
+0.4::artist:pinkmill,
+0.9::artist:freng,
+1::year 2025, 1.1::year 2024,
+
+1.2::artist:sciamano240 ::, 0.8::artist:healthyman::, 0.6::artist:hershuar, artist:re0n::, artist:myabit, 3::artist:yunsang, artist:hyulla::, 0.2::artist:ie (raarami), artist:sos adult::, 0.6::artist:qiandaiyiyu::, artist:terasu mc, artist:ohisashiburi,
+year 2024, year 2023, year 2022, year 2021,
+solo artist, -5.3::artist collaboration::, -1::clean text, flat color::, natural, incredibly absurdres, very aesthetic, highres, masterpiece, best quality, amazing quality, -3::simple illustration::, best illustration, novel illustration`;
+export function novelaiPrompt(t){return [NOVELAI_POSITIVE_BASE,t.kind==='person'?'1girl, adult, solo, upper body, full head in frame, space crew uniform, spaceship interior':t.kind==='planet'?'no humans, planet, outer space, full planet in frame, detailed atmosphere':'no humans, spaceship, full spacecraft in frame, three-quarter view, white armor, teal engines, outer space',t.name,t.description].join('\n');}
 export function imagePrompt(t){return [t.kind==='person'?'성인 인물 한 명의 가슴 위 초상화. 얼굴과 머리 전체가 프레임 안에 보이도록.':t.kind==='planet'?'우주에서 바라본 행성 전체와 주변 환경.':'함선 전체가 보이는 3/4 시점의 우주 배경 함선 일러스트.',t.name,t.description,'일관된 SF 콘셉트 아트, 정교한 디테일, 글자와 워터마크 없음.'].join('\n');}
 
 const records=new Map();
