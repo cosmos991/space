@@ -21,10 +21,10 @@ export function migrateMissions(s){if(s.missions===undefined)s.missions=freshMis
 export const missionSlots=s=>(s.missions?.active.length||0)+(s.contract?1:0);
 export function missionOffers(s,id){const d=day(s),closed=s.missions?.closedDay===d?s.missions.closed:[];return MISSION_TEMPLATES.filter(t=>(!id||t.faction===id)&&!closed.includes(`${t.id}@${d}`)&&!(s.missions?.active||[]).some(m=>m.template===t.id)).map(t=>({...t,offerId:`${t.id}@${d}`}));}
 export function missionRecord(s,id){return s.missions?.active.find(m=>m.id===id);}
-export function notifyMission(s,t,content,missionId){migrateComms(s);append(s.comms,'dm-'+t.faction,{author:faction(t.faction).person,content,role:'npc',kind:'mission',hours:s.hours,missionId,missionFaction:t.faction});}
+export function notifyMission(s,t,content,missionId,urgent=false){migrateComms(s);append(s.comms,'dm-'+t.faction,{author:faction(t.faction).person,content,role:'npc',kind:'mission',hours:s.hours,missionId,missionFaction:t.faction,...(urgent?{priority:'urgent'}:{})});}
 export function syncMissions(s){const m=migrateMissions(s),d=day(s);if(m.closedDay!==d){m.closed=[];m.closedDay=d;}if(m.noticeDay>=d)return;
  const first=m.noticeDay<0;m.noticeDay=d;
- for(const f of FACTIONS){const offers=missionOffers(s,f.id);if(!offers.length)continue;const lead=offers[d%offers.length];notifyMission(s,lead,`${first?`함장님, ${f.person}입니다. 앞으로 ${f.name}의 전담 담당자로 임무 제안과 진행 보고를 맡겠습니다. `:''}${lead.title} 의뢰를 전달합니다. ${place(lead.to,s).name} 구역 · ${MISSION_TYPES[lead.type]} · 임무 보수 ${lead.reward.toLocaleString('ko-KR')} CR. 내용을 확인하고 수락 여부를 결정해 주세요.`,lead.offerId);}
+ for(const f of FACTIONS){const offers=missionOffers(s,f.id);if(!offers.length)continue;const lead=offers[d%offers.length];notifyMission(s,lead,`${first?`함장님, ${f.person}입니다. 앞으로 ${f.name}의 전담 담당자로 임무 제안과 진행 보고를 맡겠습니다. `:''}${lead.title} 의뢰를 전달합니다. ${place(lead.to,s).name} 구역 · ${MISSION_TYPES[lead.type]} · 임무 보수 ${lead.reward.toLocaleString('ko-KR')} CR. 내용을 확인하고 수락 여부를 결정해 주세요.`,lead.offerId,lead.type==='bounty');}
 }
 function blocked(s){return s.event?'긴급 상황에 먼저 대응하세요.':'';}
 export function missionStatus(s,id,action){const m=missionRecord(s,id),offer=missionOffers(s).find(o=>o.offerId===id),t=m?missionTemplate(m.template):offer;let reason=blocked(s);if(!t)return {eligible:false,reason:'현재 유효한 임무를 찾을 수 없습니다.'};
