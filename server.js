@@ -14,6 +14,6 @@ const server=http.createServer(async(req,res)=>{
   return (pathname==='/api/images'?imageHandler:pathname==='/api/explore'?exploreHandler:handler)(req,res);
  }
  const file=files[pathname];if(!file){res.writeHead(404);res.end('Not found');return;}
- try{const content=await readFile(root+file);res.writeHead(200,{'Content-Type':mime[file.split('.').at(-1)],'X-Content-Type-Options':'nosniff'});res.end(content);}catch{res.writeHead(500);res.end('Unable to load application');}
+ try{const content=await readFile(root+file);res.writeHead(200,{'Content-Type':mime[file.split('.').at(-1)],'X-Content-Type-Options':'nosniff','Cache-Control':'no-store'});res.end(content);}catch{res.writeHead(500);res.end('Unable to load application');}
 });
 server.listen(Number(process.env.PORT)||3000,'127.0.0.1',()=>console.log(`ASTERION ready at http://localhost:${Number(process.env.PORT)||3000}`));
