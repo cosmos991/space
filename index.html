@@ -1,7 +1,8 @@
 <!doctype html>
 <html lang="ko">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#080e15"><meta name="description" content="아스테리온 항성계에서 시작하는 자유 항해. 함교 지휘형 우주 시뮬레이션."><title>ASTERION · 함교 지휘 시스템</title><link rel="stylesheet" href="/style.css"></head>
-<body>
+<body class="entry-active">
+<section id="entry-screen" role="dialog" aria-modal="true" aria-label="함교 접속" aria-live="polite"><div class="entry-card"><h1>함교 연결 준비 중…</h1></div></section>
 <div class="shell">
  <aside class="rail"><a class="brand" href="#" data-home aria-label="아스테리온 함교">A<span>✦</span></a><span class="rail-label">BRIDGE OS</span>
  <nav id="nav" aria-label="함교 메뉴">
@@ -26,7 +27,7 @@
   <section id="chart-controls" aria-label="항성계 지도 좌표와 필터"></section>
   <button id="bridge-alert" class="bridge-alert" data-tab="navigation" hidden></button>
   <button id="captain-pad" data-data-section="home" aria-haspopup="dialog" aria-controls="workspace-panel"><span>▤</span> 함장 데이터 <small>함선 · 선원 · 자산</small><span>⌃</span></button>
-  <footer><span><i class="status-dot"></i> ASTERION BRIDGE SYSTEM <b>02.0</b></span><span>왼쪽은 항해 업무 · 아래는 함장 데이터</span><button id="reset" class="quiet">새 항해</button></footer>
+  <footer><span><i class="status-dot"></i> ASTERION BRIDGE SYSTEM <b>02.0</b></span><span>왼쪽은 항해 업무 · 아래는 함장 데이터</span><button id="reset" class="quiet">새로 시작하기</button></footer>
  </main>
 </div>
 <dialog id="workspace-panel" aria-labelledby="panel-title"><div class="workspace-panel-head"><div><div id="panel-kicker" class="eyebrow"></div><h2 id="panel-title"></h2></div><button id="close-panel" aria-label="패널 닫기" autofocus>✕ <span>ESC</span></button></div><nav id="panel-nav" aria-label="항해 업무"><button data-tab="navigation">항법</button><button data-tab="galaxy">성간 탐색</button><button data-tab="market">거래소</button><button data-tab="comms">통신</button><button data-tab="factions">팩션</button><button data-tab="missions">임무</button><button data-tab="news">정보</button><button id="combat-tab" data-tab="combat" hidden>전투</button></nav><div id="detail"></div><div class="workspace-panel-foot"><span>CSV NOMAD / COMMAND INTERFACE</span><button data-close-panel>항성계로 돌아가기 ↗</button></div></dialog>
