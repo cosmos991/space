@@ -11,9 +11,9 @@ test('image endpoint fails closed on missing auth and invalid requests without A
 test('manual image generation fixes count and format, returns usage, and rejects duplicate in-flight requests',async t=>{configure(t);let release,payload;const wait=new Promise(r=>release=r);t.mock.method(globalThis,'fetch',async(url,opts)=>{payload=JSON.parse(opts.body);assert.equal(url,'https://api.openai.com/v1/images/generations');await wait;return {ok:true,json:async()=>({data:[{b64_json:'YWJj'}],usage:{input_tokens:10,output_tokens:20,total_tokens:30}})};});const a=response(),pending=handler(req(),a);const b=response();await handler(req(),b);assert.equal(b.statusCode,429);release();await pending;assert.equal(a.statusCode,200);assert.equal(a.data.image,'data:image/jpeg;base64,YWJj');assert.equal(a.data.usage.total,30);assert.equal(payload.n,1);assert.equal(payload.size,'1024x1536');assert.equal(payload.output_format,'jpeg');assert.ok(!JSON.stringify(a.data).includes('test-key'));});
 test('upstream failures return no image, release the lock, and malformed billed responses retain usage',async t=>{configure(t);t.mock.method(globalThis,'fetch',async()=>({ok:false}));let r=response();await handler(req(),r);assert.equal(r.statusCode,502);assert.ok(!r.data.image);t.mock.method(globalThis,'fetch',async()=>({ok:true,json:async()=>({data:[],usage:{input_tokens:2,output_tokens:3,total_tokens:5}})}));r=response();await handler(req(),r);assert.equal(r.statusCode,502);assert.equal(r.data.usage.total,5);});
 test('image persistence keeps preview separate, restores originals, survives reload and preserves applied art on storage failure',async t=>{
- const {loadImages,addImage,selectImage,removeImage,imageRecord}=await import('../image-assets.js');
+ const {loadImages,addImage,selectImage,removeImage,imageRecord,exportWorldImages,replaceWorldImages}=await import('../image-assets.js');
  const stored=new Map();let fail=false;
- const db={transaction(){const tx={error:Error('quota'),objectStore(){return {getAll(){const r={};queueMicrotask(()=>{r.result=[...stored.values()].map(v=>structuredClone(v));r.onsuccess();tx.oncomplete();});return r;},put(value){queueMicrotask(()=>{if(fail){tx.onerror();return;}stored.set(value.key,structuredClone(value));tx.oncomplete();});}};}};return tx;}};
+ const db={transaction(){const tx={error:Error('quota'),objectStore(){return {getAll(){const r={};queueMicrotask(()=>{r.result=[...stored.values()].map(v=>structuredClone(v));r.onsuccess();tx.oncomplete();});return r;},delete(key){queueMicrotask(()=>{if(fail){tx.onerror();return;}stored.delete(key);tx.oncomplete();});},put(value){queueMicrotask(()=>{if(fail){tx.onerror();return;}stored.set(value.key,structuredClone(value));tx.oncomplete();});}};}};return tx;}};
  globalThis.indexedDB={open(){const r={result:db};queueMicrotask(()=>r.onsuccess());return r;}};t.after(()=>delete globalThis.indexedDB);
  const s=freshState(777),before=structuredClone(s),data='data:image/jpeg;base64,YWJj';
  await loadImages();const a=await addImage(s,'ship:nomad',data,'prompt','mock');
@@ -23,6 +23,8 @@ test('image persistence keeps preview separate, restores originals, survives rel
  fail=true;await assert.rejects(selectImage(s,'ship:nomad',null));assert.equal(imageSource(s,'ship:nomad'),data);fail=false;
  const b=await addImage(s,'ship:nomad',data,'alternative','mock');assert.equal(imageRecord(s,'ship:nomad').active,a);
  await selectImage(s,'ship:nomad',b);await removeImage(s,'ship:nomad',a);assert.equal(imageRecord(s,'ship:nomad').active,b);
+ const snapshot=exportWorldImages(s);assert.equal(snapshot.length,1);assert.equal(exportWorldImages(freshState(778)).length,0);
+ await replaceWorldImages(s,[]);assert.equal(imageSource(s,'ship:nomad','original'),'original');await replaceWorldImages(s,snapshot);assert.equal(imageRecord(s,'ship:nomad').active,b);assert.equal(imageSource(s,'ship:nomad'),data);
  await selectImage(s,'ship:nomad',null);assert.equal(imageSource(s,'ship:nomad','original'),'original');
  assert.equal(imageSource(freshState(778),'ship:nomad','original'),'original');
  await assert.rejects(addImage(s,'ship:nomad','javascript:alert(1)','x','x'));

@@ -343,3 +343,19 @@ Anlas/구독 혜택은 계정 조건에 따라 다르므로 무료라고 단정�
 
 공식 API: https://image.novelai.net/docs/index.html · https://image.novelai.net/docs/doc.json
 토큰 발급: https://docs.novelai.net/en/text/usersettings/account/
+
+
+## Supabase DB · 개인 클라우드 보관함
+
+데이터 → 클라우드 보관함에서 현재 게임·이 우주의 생성 이미지 전체·적용 선택·프롬프트 편집본·공통 화풍을 수동 저장하고, 최신 20개 저장본 중 하나를 골라 복원합니다. 이미지 바이트는 비공개 Storage에 콘텐츠 해시 파일명으로 저장하고, DB에는 게임 JSON과 이미지 메타데이터/참조만 저장합니다. 같은 게임 접근 코드를 쓰는 개인 저장소이며 별도 사용자 계정 로그인/다중 사용자 분리는 이번 단계에 포함하지 않습니다. 원래 브라우저 저장은 유지하고, 이미지 생성·편집 뒤 클라우드 저장 버튼을 눌러야 다른 기기에서 복원할 수 있습니다. 자동 동기화는 없습니다.
+
+### 초기 연결
+
+1. Supabase 프로젝트를 만들거나 기존 프로젝트를 선택하고, SQL Editor에서 db/001_archive.sql을 실행합니다. asterion_archives 테이블과 asterion-art 비공개 버킷을 준비합니다. anon/authenticated에 테이블 권한을 부여하거나 공개 버킷으로 바꾸지 마세요.
+2. Vercel 프로젝트의 Production 환경 변수에 SUPABASE_URL(https://프로젝트.supabase.co), SUPABASE_SERVICE_ROLE_KEY(서버 전용 service_role 키)를 설정합니다. 기존 GAME_ACCESS_CODE도 필요합니다. API 키를 프런트 코드, 저장본 또는 채팅에 붙이지 마세요.
+3. 기존 프로젝트를 재배포하고 클라우드 보관함에서 접근 코드를 입력한 뒤 저장본 목록 확인으로 실제 DB 연결을 점검합니다. 연결 플래그는 환경 변수 유무만 확인하며 SQL 적용 여부까지 보장하지 않습니다.
+4. 원래 이미지를 가진 브라우저에서 현재 기록을 클라우드에 저장합니다. 다른 기기에서는 같은 코드로 목록 확인 → 복원 내용 검토 → 현재 기록 백업 후 복원을 선택합니다.
+
+복원 전에 현재 게임을 클라우드에 새 버전으로 먼저 저장합니다. 기존 원격 저장본은 덮어쓰지 않고 삭제 API도 제공하지 않습니다. 조회·업로드·저장·이미지 다운로드는 서버 인증 뒤 처리하며 서버 키는 브라우저로 전송하지 않습니다. 이미지 업로드가 실패하면 DB 저장본을 발행하지 않습니다. 이미지 다운로드와 저장본 검증을 끝내기 전에 현재 게임을 바꾸지 않습니다. 브라우저 저장이 실패하면 이미지·게임 복원을 되돌리며 사전 클라우드 백업도 남습니다. 현재 API는 이미지당 약 3MB, 메타데이터/게임 합계 2MB, 대상 200개·대상별 이미지 12장을 제한합니다. 목록은 최근 20개만 표시하지만 오래된 저장본을 자동 삭제하지 않으므로 저장소 용량은 별도 관리해야 합니다. 중단된 업로드 후 참조되지 않은 콘텐츠 파일은 남을 수 있습니다.
+
+현재 검증은 모의 DB/Storage 응답 기준입니다. Supabase 프로젝트 연결과 환경 변수 설정 없이 실제 DB가 생성되거나 데이터가 업로드된 것으로 표시하지 않습니다. 설정 전 화면은 DB 연결 대기로 표시합니다. 공식 자료: https://supabase.com/docs/guides/api · https://supabase.com/docs/guides/storage/buckets/fundamentals · https://supabase.com/docs/guides/storage/security/access-control

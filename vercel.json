@@ -13,6 +13,10 @@
     "api/images.js": {
       "maxDuration": 120,
       "includeFiles": "{novelai-images,image-request,usage,crew-data}.js"
+    },
+    "api/archive.js": {
+      "maxDuration": 60,
+      "includeFiles": "{archive-schema,galaxy,galaxy-gen,engine,economy,usage,events,communications,world-data,factions,news,combat,equipment,missions,cargo,crew,crew-data}.js"
     }
   },
   "headers": [
