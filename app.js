@@ -30,7 +30,7 @@ selected=state.location;let focusedFaction='union',confirmPurchase=false;
 let combatAnimating=false;
 let selectedCrew=state.crew.roster[0]?.id||CREW_CANDIDATES[0].id,crewView='aboard',crewReview='',crewProfileOpen=false;const crewDrafts={},crewAssignments={};
 let generating=false,generationPreview=false;
-let imageTarget='ship:nomad',imagePending=false,imageError='',imageQuality='low',imageProvider='novelai',imageProviders={};const imageDrafts={},imageNegative={},imageSeeds={};
+let imageTarget='person:test-navigator',imagePending=false,imageError='',imageQuality='low',imageProvider='novelai',imageProviders={};const imageDrafts={},imageNegative={},imageSeeds={};
 try{const preferred=sessionStorage.getItem('asterion-image-provider');if(['openai','novelai'].includes(preferred))imageProvider=preferred;}catch{}
 let dataSection='home',dataContact='';
 function crewConversationOpen(id=selectedCrew){return (tab==='crew'&&selectedCrew===id)||(tab==='data'&&dataSection==='contacts'&&dataContact===id);}
@@ -198,3 +198,5 @@ document.addEventListener('click',async e=>{if(!e.target.closest('[data-image-co
 fetch('/api/images').then(r=>r.json()).then(data=>{imageProviders=data.providers||{};if(tab==='data'&&dataSection==='images')renderDetail();}).catch(()=>{imageProviders={};});
 
 document.addEventListener('click',e=>{if(!e.target.closest('[data-image-default]')||imagePending)return;delete imageDrafts[imageProvider+':'+imageTarget];imageError='';renderDetail();toast('기본 긍정 프롬프트를 불러왔습니다.');});
+
+document.addEventListener('click',e=>{if(!e.target.closest('[data-female-crew-test]')||imagePending)return;imageProvider='novelai';imageTarget='person:test-navigator';delete imageDrafts['novelai:'+imageTarget];delete imageNegative[imageTarget];try{sessionStorage.setItem('asterion-image-provider','novelai');}catch{}imageError='';renderDetail();toast('여자 선원 테스트 기본값을 불러왔습니다.');});
