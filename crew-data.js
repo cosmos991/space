@@ -7,18 +7,20 @@ export const CREW_CANDIDATES=[
  {id:'yuri',mbti:'ESFJ',values:'상호 돌봄과 공정한 분배',risk:'동료에게 부담을 떠넘기는 선택을 피합니다.',speech:'상대의 상태를 먼저 묻고 구체적인 준비를 제안합니다.',recruit:'broker',name:'민유리',title:'군수·정비 전문가',role:'support',secondary:'navigation',fee:360,wage:20,color:'#a7d6a0',personality:'정리가 빠르고 다정하며 작은 낭비를 잘 찾아냅니다.',bio:'프리포트 공동 창고와 수리 접수 업무를 맡았습니다. 보급·정비 단가 협상과 장비 점검이 특기입니다.',greeting:'민유리입니다. 보급과 정비 일정을 정리해 둘게요. 함장님은 다음 목적지를 골라 주세요.',story:'공동 창고에서는 남는 물건이 다른 사람에게 꼭 필요한 물건이 되곤 했어요. 그래서 저는 물자를 아끼는 것과 사람을 돕는 일이 멀리 떨어져 있다고 생각하지 않습니다.'},
  {id:'dohyun',mbti:'INFJ',values:'의견의 존중과 함께 살아남는 선택',risk:'충분히 의견을 듣되 구조가 필요하면 결단합니다.',speech:'차분하게 의도를 묻고 여러 사람의 관점을 연결합니다.',recruit:'rescue',name:'이도현',title:'지휘·협업 전문가',role:'command',secondary:'tactical',fee:580,wage:32,color:'#b8a2e4',personality:'온화하고 신중하며 다른 사람의 의견을 끝까지 듣습니다.',bio:'소규모 탐사 원정의 운항 조정을 맡았습니다. 부서 간 동력 배분과 위기 시 판단을 돕습니다.',greeting:'이도현입니다. 각 모듈의 보고를 정리하고 함장님의 결정을 지원하겠습니다.',story:'서로 다른 전문가들이 같은 답을 내는 일은 드뭅니다. 하지만 각자가 무엇을 지키려는지 듣고 나면 함께 선택할 수 있는 길이 보이더군요. 그런 순간에 보람을 느낍니다.'}
 ];
-export const crewMember=id=>CREW_CANDIDATES.find(c=>c.id===id);
+export const crewCatalog=s=>[...CREW_CANDIDATES,...Object.values(s?.galaxy?.systems||{}).flatMap(g=>g.people)];
+export const crewMember=(id,s)=>crewCatalog(s).find(c=>c.id===id);
 export const crewCapacity=s=>SHIP_CLASSES.find(c=>c.id===(s.crew?.shipClass||'scout'))?.capacity||2;
-export function assignmentStrength(id,assignment){const c=crewMember(id);return c?.role===assignment?1:(c?.secondary===assignment?0.5:0);}
-export function crewBonuses(s){const b={accuracy:0,shieldRegen:0,energyRegen:0,cooling:0,fuelFactor:1,speed:1,escape:0,serviceDiscount:0};if((s?.crew?.payroll?.owed||0)>1e-6)return b;for(const m of s?.crew?.roster||[]){const k=assignmentStrength(m.id,m.assignment);if(m.assignment==='tactical'){b.accuracy+=4*k;b.shieldRegen+=3*k;}if(m.assignment==='engineering'){b.energyRegen+=2*k;b.cooling+=2*k;}if(m.assignment==='navigation'){b.fuelFactor-=.08*k;b.speed+=.05*k;}if(m.assignment==='command'){b.escape+=4*k;b.shieldRegen+=2*k;}if(m.assignment==='support')b.serviceDiscount+=.12*k;}return b;}
-export const dailyWages=s=>(s?.crew?.roster||[]).reduce((sum,m)=>sum+(crewMember(m.id)?.wage||0),0);
+export function assignmentStrength(id,assignment,s){const c=crewMember(id,s);return c?.role===assignment?1:(c?.secondary===assignment?0.5:0);}
+export function crewBonuses(s){const b={accuracy:0,shieldRegen:0,energyRegen:0,cooling:0,fuelFactor:1,speed:1,escape:0,serviceDiscount:0};if((s?.crew?.payroll?.owed||0)>1e-6)return b;for(const m of s?.crew?.roster||[]){const k=assignmentStrength(m.id,m.assignment,s);if(m.assignment==='tactical'){b.accuracy+=4*k;b.shieldRegen+=3*k;}if(m.assignment==='engineering'){b.energyRegen+=2*k;b.cooling+=2*k;}if(m.assignment==='navigation'){b.fuelFactor-=.08*k;b.speed+=.05*k;}if(m.assignment==='command'){b.escape+=4*k;b.shieldRegen+=2*k;}if(m.assignment==='support')b.serviceDiscount+=.12*k;}return b;}
+export const dailyWages=s=>(s?.crew?.roster||[]).reduce((sum,m)=>sum+(crewMember(m.id,s)?.wage||0),0);
 
 // Candidate identity and personality never reroll with the broker schedule.
 export const BROKER_PERIOD=48;
 export function recruitmentPort(s,id){
- const c=crewMember(id);if(!c)return null;
+ const c=crewMember(id,s);if(!c)return null;
+ if(c.generated)return c.home;
  if(c.recruit==='rescue')return s.crew?.recruitment?.rescued||s.crew?.records?.[id]?.met?'haven':null;
  if(id==='gaon')return 'forge';if(id==='yuri')return 'terra';
  const phase=Math.floor(s.hours/BROKER_PERIOD)%2;return (id==='harin')===(phase===0)?'haven':'freeport';
 }
-export function recruitmentCandidates(s){if(s.travel||s.event)return [];return CREW_CANDIDATES.filter(c=>!s.crew?.roster.some(m=>m.id===c.id)&&recruitmentPort(s,c.id)===s.location);}
+export function recruitmentCandidates(s){if(s.travel||s.event)return [];return crewCatalog(s).filter(c=>!s.crew?.roster.some(m=>m.id===c.id)&&recruitmentPort(s,c.id)===s.location);}

@@ -1,3 +1,5 @@
+import {place} from './world-data.js';
+import {portsFor,portFor} from './economy.js';
 import {migrateCrew} from './crew.js';
 import {usedCargo as used} from './cargo.js';
 import {pushIssue} from './news.js';
@@ -8,7 +10,7 @@ export const EVENT_RULES={checkHours:6,minGap:12,typeCooldown:36,baseTravelChanc
 export function freshWorld(seed=123456789,hours=0){return {version:1,rng:(seed>>>0)||1,lastEventAt:hours-12,cooldowns:{},nextBroadcast:hours+3,resolved:0,checks:0};}
 export function migrateWorld(s){if(!s.world)s.world=freshWorld(0x51f15e+Math.floor(s.hours),s.hours);return s;}
 export function random(s){migrateWorld(s);let x=s.world.rng;x^=x<<13;x^=x>>>17;x^=x<<5;s.world.rng=x>>>0;return s.world.rng/4294967296;}
-const riskZone=s=>['belt','veil','echo'].includes(s.travel?.to||s.location);
+const riskZone=s=>['belt','nebula','ruin'].includes(place(s.travel?.to||s.location,s)?.type);
 const TYPES={
  'crew-rescue':{title:'외곽 탐사정의 조난 신호',text:'소형 탐사정에서 이도현이 구조 요청을 보냈습니다. 구조대의 접근 항로를 확보하면 생존자를 헤이븐으로 이송할 수 있습니다. 구조 후 현지에서 승함을 제안할 수 있습니다.',weight:28},
  raiders:{title:'항로를 차단한 무장 함선',text:'무등록 무장 함선이 항로를 막고 200 CR의 통행료를 요구합니다. 교전하거나 철수를 시도할 수 있습니다.',weight:20},
@@ -35,7 +37,7 @@ export function makeEvent(s,id,trigger='time'){
 export function checkEvent(s,trigger='time'){
  migrateWorld(s);s.world.checks++;if(s.event||s.hours-s.world.lastEventAt<EVENT_RULES.minGap)return false;
  // Port life remains a non-blocking news feed; it never forces a choice while docked.
- if(trigger==='time'&&!s.travel&&PORTS[s.location]){if(random(s)<.1){const market=marketSnapshot(s),good=['ore','food','tech'][Math.floor(random(s)*3)],drop=Math.min(8,market.stock[good]);s.economy.markets[s.location]={updated:market.updated,stock:{...market.stock,[good]:market.stock[good]-drop}};broadcast(s,{author:PORTS[s.location].name+' 거래소',topic:'trade',kind:'report',content:`현지 구매 수요로 ${good==='ore'?'광물':good==='food'?'식량':'기술 부품'} 재고가 ${drop}t 감소했습니다. 거래소의 최신 시세를 확인하세요.`});pushIssue(s,{region:s.location,key:'market',title:`${good==='ore'?'광물':good==='food'?'식량':'기술 부품'} 재고 ${drop}t 감소 · 최신 시세 확인 권장`,level:'warning',duration:18});}return false;}
+ if(trigger==='time'&&!s.travel&&portFor(s)){if(random(s)<.1){const market=marketSnapshot(s),good=['ore','food','tech'][Math.floor(random(s)*3)],drop=Math.min(8,market.stock[good]);s.economy.markets[s.location]={updated:market.updated,stock:{...market.stock,[good]:market.stock[good]-drop}};broadcast(s,{author:portFor(s).name+' 거래소',topic:'trade',kind:'report',content:`현지 구매 수요로 ${good==='ore'?'광물':good==='food'?'식량':'기술 부품'} 재고가 ${drop}t 감소했습니다. 거래소의 최신 시세를 확인하세요.`});pushIssue(s,{region:s.location,key:'market',title:`${good==='ore'?'광물':good==='food'?'식량':'기술 부품'} 재고 ${drop}t 감소 · 최신 시세 확인 권장`,level:'warning',duration:18});}return false;}
  const chance=trigger==='survey'?EVENT_RULES.surveyChance:Math.min(.65,EVENT_RULES.baseTravelChance+(riskZone(s)?.15:0)+(s.hull<50?.08:0));
  if(random(s)>=chance)return false;const options=eligibleEvents(s,trigger);if(!options.length)return false;let roll=random(s)*options.reduce((n,o)=>n+o.weight,0);let id=options.at(-1).id;for(const o of options){roll-=o.weight;if(roll<0){id=o.id;break;}}makeEvent(s,id,trigger);return true;
 }

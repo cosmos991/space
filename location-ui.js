@@ -3,7 +3,7 @@ import {place,PLACES,LOCATION_TYPES,routeFor,availableLocalActions,planetPurchas
 import {faction} from './factions.js';
 const fmt=n=>Math.floor(n).toLocaleString('ko-KR');
 export function locationHTML(s,id,{confirmPurchase=false}={}){
- const p=place(id),type=LOCATION_TYPES[p.type],here=!s.travel&&s.location===id,r=routeFor(s,id),owner=faction(p.factionId),owned=s.diplomacy.ownedPlanets.includes(id);
+ const p=place(id,s),type=LOCATION_TYPES[p.type],here=!s.travel&&s.location===id,r=routeFor(s,id),owner=faction(p.factionId),owned=s.diplomacy.ownedPlanets.includes(id);
  const actions=availableLocalActions(s,id);
  return `<div class="location-panel"><div class="location-state"><span class="tag">${type.name}</span><span class="${here?'gain':'muted'}">${here?'● 현재 위치 · 구역 행동':s.travel?'항해 중 · 목적지 정보':'목적지 미리보기 · 도착 후 행동 가능'}</span></div><div class="location-title"><div class="planet-icon" style="color:${p.color}">${type.icon}</div><div><h2>${p.name}</h2><small>${p.en}</small></div></div><p class="description">${p.desc}</p><div class="facts"><div class="fact"><small>관할 / 소유</small><strong>${owned?'CSV 노마드 · 함장 소유':p.faction}</strong></div><div class="fact"><small>${here?'현지 조사':'필요 연료 / 소요 시간'}</small><strong>${here?(type.survey?(s.survey[id]||0)+' / 3':'공공 서비스 이용'):r?r.fuel+' 연료 · '+r.total+'h':'—'}</strong></div></div>
  ${!here?`<div class="actions"><button class="primary" data-action="depart" ${s.travel||s.event||!r||s.fuel<r.fuel?'disabled':''}>${s.travel?'항해 진행 중':s.fuel<(r?.fuel||0)?'출항 연료 부족':'이 구역으로 항로 설정 →'}</button></div>`:''}
@@ -16,6 +16,6 @@ export function locationHTML(s,id,{confirmPurchase=false}={}){
 function planetCard(s,p,here,owned,confirm){
  if(owned)return `<div class="ownership-note owned"><strong>행성 소유권 등록 완료</strong><p>${p.name}는 함장님의 자산입니다. 기본 세수 +${fmt(p.income)} CR/h가 게임 시간에 따라 입금됩니다.</p><button data-tab="assets">행성 자산 확인 →</button></div>`;
  const status=planetPurchaseStatus(s,p.id),d=s.diplomacy;
- const checks=[['매입 대금',s.credits,p.purchasePrice,fmt(p.purchasePrice)+' CR'],['성계 명예',d.honor,p.requiredHonor,fmt(p.requiredHonor)],['항성 연합 신뢰',d.reputation.union,p.requiredStanding,p.requiredStanding+'']];
+ const checks=[['매입 대금',s.credits,p.purchasePrice,fmt(p.purchasePrice)+' CR'],['성계 명예',d.honor,p.requiredHonor,fmt(p.requiredHonor)],[(faction(p.factionId||'union')?.name||'항성 연합')+' 신뢰',d.reputation[p.factionId||'union'],p.requiredStanding,p.requiredStanding+'']];
  return `<div class="planet-charter"><div class="section-kicker">PLANETARY OWNERSHIP</div><h3>행정청 · 행성 소유권 심사</h3><p>행성 소유는 성계의 거물에게 허용되는 장기 목표입니다. 자금·명예·관할 팩션의 신뢰 조건을 모두 충족해야 합니다.</p>${checks.map(([label,value,min,target])=>`<div class="charter-row"><span>${value>=min?'✓':'○'} ${label}</span><strong class="${value>=min?'gain':'muted'}">${fmt(value)} / ${target}</strong></div>`).join('')}<p class="hint">매입 후 기본 세수 +${fmt(p.income)} CR/h · 명예와 신뢰는 소비하지 않습니다.</p>${confirm&&status.eligible?`<div class="purchase-confirm"><strong>10억 CR을 지불하고 ${p.name}를 매입할까요?</strong><div><button data-purchase-confirm class="primary">소유권 매입 확정</button><button data-purchase-cancel>취소</button></div></div>`:`<button class="primary" data-purchase-review ${!status.eligible?'disabled':''}>${status.eligible?'매입 조건 충족 · 계약 내용 확인':status.reason}</button>`}</div>`;
 }

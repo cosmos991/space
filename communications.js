@@ -1,3 +1,4 @@
+import {portsFor,portFor} from './economy.js';
 import {FACTIONS} from './factions.js';
 import {PORTS,unitPrice} from './economy.js';
 export const TOPICS={general:'종합',trade:'교역',safety:'항로 안전',exploration:'탐사'};

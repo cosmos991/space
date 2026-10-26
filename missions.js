@@ -24,7 +24,7 @@ export function missionRecord(s,id){return s.missions?.active.find(m=>m.id===id)
 export function notifyMission(s,t,content,missionId){migrateComms(s);append(s.comms,'dm-'+t.faction,{author:faction(t.faction).person,content,role:'npc',kind:'mission',hours:s.hours,missionId,missionFaction:t.faction});}
 export function syncMissions(s){const m=migrateMissions(s),d=day(s);if(m.closedDay!==d){m.closed=[];m.closedDay=d;}if(m.noticeDay>=d)return;
  const first=m.noticeDay<0;m.noticeDay=d;
- for(const f of FACTIONS){const offers=missionOffers(s,f.id);if(!offers.length)continue;const lead=offers[d%offers.length];notifyMission(s,lead,`${first?`함장님, ${f.person}입니다. 앞으로 ${f.name}의 전담 담당자로 임무 제안과 진행 보고를 맡겠습니다. `:''}${lead.title} 의뢰를 전달합니다. ${place(lead.to).name} 구역 · ${MISSION_TYPES[lead.type]} · 임무 보수 ${lead.reward.toLocaleString('ko-KR')} CR. 내용을 확인하고 수락 여부를 결정해 주세요.`,lead.offerId);}
+ for(const f of FACTIONS){const offers=missionOffers(s,f.id);if(!offers.length)continue;const lead=offers[d%offers.length];notifyMission(s,lead,`${first?`함장님, ${f.person}입니다. 앞으로 ${f.name}의 전담 담당자로 임무 제안과 진행 보고를 맡겠습니다. `:''}${lead.title} 의뢰를 전달합니다. ${place(lead.to,s).name} 구역 · ${MISSION_TYPES[lead.type]} · 임무 보수 ${lead.reward.toLocaleString('ko-KR')} CR. 내용을 확인하고 수락 여부를 결정해 주세요.`,lead.offerId);}
 }
 function blocked(s){return s.event?'긴급 상황에 먼저 대응하세요.':'';}
 export function missionStatus(s,id,action){const m=missionRecord(s,id),offer=missionOffers(s).find(o=>o.offerId===id),t=m?missionTemplate(m.template):offer;let reason=blocked(s);if(!t)return {eligible:false,reason:'현재 유효한 임무를 찾을 수 없습니다.'};
@@ -33,18 +33,18 @@ export function missionStatus(s,id,action){const m=missionRecord(s,id),offer=mis
   if(!m)reason='수락한 임무가 아닙니다.';
   else if(action==='abandon'){}
   else if(s.travel)reason='목적지 도착 후 진행하세요.';
-  else if(action==='pickup'){if(t.type!=='delivery'||m.cargo)reason='적재할 임무 화물이 없습니다.';else if(s.location!==t.from)reason=place(t.from).name+'에서 화물을 수령하세요.';else if(usedCargo(s)+t.quantity>40)reason=`화물 공간 ${t.quantity}t이 필요합니다.`;}
-  else if(action==='scan'){if(t.type!=='survey'||m.progress)reason='새로 스캔할 임무가 아닙니다.';else if(s.location!==t.to)reason=place(t.to).name+'에 도착해야 합니다.';else if(s.fuel<5)reason='정밀 스캔에는 연료 5가 필요합니다.';}
-  else if(action==='track'){if(t.type!=='bounty'||m.progress)reason='추적할 표적이 없습니다.';else if(s.location!==t.to)reason=place(t.to).name+'에서 표적을 추적하세요.';else if(s.fuel<3)reason='표적 추적에는 연료 3이 필요합니다.';}
-  else if(action==='complete'){if(t.type==='delivery'){if(!m.cargo)reason='발주처에서 임무 화물을 먼저 수령하세요.';else if(s.location!==t.to)reason=place(t.to).name+'에 화물을 전달하세요.';}else if(!m.progress)reason=t.type==='survey'?'임무용 정밀 스캔을 먼저 완료하세요.':'지정 표적을 먼저 격퇴하세요.';else if(s.location!==t.from)reason=place(t.from).name+'에서 담당자에게 보고하세요.';}
+  else if(action==='pickup'){if(t.type!=='delivery'||m.cargo)reason='적재할 임무 화물이 없습니다.';else if(s.location!==t.from)reason=place(t.from,s).name+'에서 화물을 수령하세요.';else if(usedCargo(s)+t.quantity>40)reason=`화물 공간 ${t.quantity}t이 필요합니다.`;}
+  else if(action==='scan'){if(t.type!=='survey'||m.progress)reason='새로 스캔할 임무가 아닙니다.';else if(s.location!==t.to)reason=place(t.to,s).name+'에 도착해야 합니다.';else if(s.fuel<5)reason='정밀 스캔에는 연료 5가 필요합니다.';}
+  else if(action==='track'){if(t.type!=='bounty'||m.progress)reason='추적할 표적이 없습니다.';else if(s.location!==t.to)reason=place(t.to,s).name+'에서 표적을 추적하세요.';else if(s.fuel<3)reason='표적 추적에는 연료 3이 필요합니다.';}
+  else if(action==='complete'){if(t.type==='delivery'){if(!m.cargo)reason='발주처에서 임무 화물을 먼저 수령하세요.';else if(s.location!==t.to)reason=place(t.to,s).name+'에 화물을 전달하세요.';}else if(!m.progress)reason=t.type==='survey'?'임무용 정밀 스캔을 먼저 완료하세요.':'지정 표적을 먼저 격퇴하세요.';else if(s.location!==t.from)reason=place(t.from,s).name+'에서 담당자에게 보고하세요.';}
   else reason='알 수 없는 임무 행동입니다.';
  }
  return {eligible:!reason,reason};
 }
 export function executeMission(s,id,action){if(!['accept','pickup','scan','complete','abandon'].includes(action))throw Error('알 수 없는 임무 행동입니다.');const status=missionStatus(s,id,action);if(!status.eligible)throw Error(status.reason);const store=migrateMissions(s);let m=missionRecord(s,id);const t=m?missionTemplate(m.template):missionOffers(s).find(o=>o.offerId===id);
- let text='';if(action==='accept'){m={id,template:t.id,acceptedAt:s.hours,progress:0,cargo:0};store.active.push(m);store.closed.push(id);text=`${t.title} 임무를 등록했습니다. ${t.type==='delivery'?place(t.from).name+'에서 봉인 화물을 수령하세요.':place(t.to).name+'에서 '+(t.type==='survey'?'임무용 정밀 스캔':'표적 추적')+'을 진행하세요.'}`;}
- if(action==='pickup'){m.cargo=t.quantity;text=`${t.title} · 봉인 임무 화물 ${t.quantity}t 적재. 거래할 수 없으며 ${place(t.to).name}에 전달합니다.`;}
- if(action==='scan'){s.fuel-=5;m.progress=1;text=`${t.title} · 정밀 스캔 완료. ${place(t.from).name}에 귀환해 보고하세요.`;}
+ let text='';if(action==='accept'){m={id,template:t.id,acceptedAt:s.hours,progress:0,cargo:0};store.active.push(m);store.closed.push(id);text=`${t.title} 임무를 등록했습니다. ${t.type==='delivery'?place(t.from,s).name+'에서 봉인 화물을 수령하세요.':place(t.to,s).name+'에서 '+(t.type==='survey'?'임무용 정밀 스캔':'표적 추적')+'을 진행하세요.'}`;}
+ if(action==='pickup'){m.cargo=t.quantity;text=`${t.title} · 봉인 임무 화물 ${t.quantity}t 적재. 거래할 수 없으며 ${place(t.to,s).name}에 전달합니다.`;}
+ if(action==='scan'){s.fuel-=5;m.progress=1;text=`${t.title} · 정밀 스캔 완료. ${place(t.from,s).name}에 귀환해 보고하세요.`;}
  if(action==='complete'||action==='abandon'){
   if(action==='complete'){s.credits+=t.reward;gainStanding(s,t.faction,t.honor,t.trust);store.completed[t.faction]++;text=`${t.title} 완료. ${t.reward} CR · 명예 +${t.honor} · ${faction(t.faction).name} 신뢰 +${t.trust}.`;}
   else text=`${t.title} 임무를 포기했습니다. 보상과 불이익은 없으며 봉인 화물은 발주처 회수 처리됩니다.`;
@@ -52,5 +52,5 @@ export function executeMission(s,id,action){if(!['accept','pickup','scan','compl
  }
  notifyMission(s,t,text,id);return text;
 }
-export function recordMissionVictory(s){const c=s.combat,m=missionRecord(s,c?.missionId);if(c?.status!=='victory'||!m||m.progress)return false;const t=missionTemplate(m.template);if(t.type!=='bounty'||c.region!==t.to||c.enemy.name!==t.target)return false;m.progress=1;notifyMission(s,t,`${t.title} · 지정 표적 격퇴를 확인했습니다. ${place(t.from).name}에 귀환해 임무 보수를 수령하세요.`,m.id);return true;}
+export function recordMissionVictory(s){const c=s.combat,m=missionRecord(s,c?.missionId);if(c?.status!=='victory'||!m||m.progress)return false;const t=missionTemplate(m.template);if(t.type!=='bounty'||c.region!==t.to||c.enemy.name!==t.target)return false;m.progress=1;notifyMission(s,t,`${t.title} · 지정 표적 격퇴를 확인했습니다. ${place(t.from,s).name}에 귀환해 임무 보수를 수령하세요.`,m.id);return true;}
 export function validMissions(m,s){if(m===undefined)return true;const hours=s?.hours,d=Math.floor(hours/24);const validId=(id,template)=>typeof id==='string'&&id.startsWith(template+'@')&&/^\d+$/.test(id.slice(template.length+1))&&Number(id.slice(template.length+1))<=d;return m?.version===1&&Number.isInteger(m.noticeDay)&&m.noticeDay>=-1&&m.noticeDay<=d&&Number.isInteger(m.closedDay)&&m.closedDay>=0&&m.closedDay<=d&&Array.isArray(m.closed)&&m.closed.length<=9&&new Set(m.closed).size===m.closed.length&&m.closed.every(id=>MISSION_TEMPLATES.some(t=>id===`${t.id}@${m.closedDay}`))&&m.completed&&FACTIONS.every(f=>Number.isSafeInteger(m.completed[f.id])&&m.completed[f.id]>=0)&&Array.isArray(m.active)&&m.active.length+(s.contract?1:0)<=3&&new Set(m.active.map(x=>x.id)).size===m.active.length&&new Set(m.active.map(x=>x.template)).size===m.active.length&&m.active.every(x=>{const t=missionTemplate(x.template);return t&&validId(x.id,t.id)&&Number.isFinite(x.acceptedAt)&&x.acceptedAt>=0&&x.acceptedAt<=hours&&Math.floor(x.acceptedAt/24)===Number(x.id.split('@')[1])&&[0,1].includes(x.progress)&&Number.isSafeInteger(x.cargo)&&x.cargo>=0&&(t.type==='delivery'?x.progress===0&&[0,t.quantity].includes(x.cargo):x.cargo===0);})&&Array.isArray(m.history)&&m.history.length<=30&&m.history.every(x=>missionTemplate(x.template)&&validId(x.id,x.template)&&['completed','abandoned'].includes(x.status)&&Number.isFinite(x.time)&&x.time>=0&&x.time<=hours)&&(!s.combat?.missionId||s.combat.status!=='active'||m.active.some(x=>x.id===s.combat.missionId&&missionTemplate(x.template).type==='bounty'&&x.progress===0&&s.event?.missionId===x.id));}
