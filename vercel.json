@@ -12,7 +12,7 @@
     },
     "api/images.js": {
       "maxDuration": 120,
-      "includeFiles": "{image-request,usage,crew-data}.js"
+      "includeFiles": "{novelai-images,image-request,usage,crew-data}.js"
     }
   }
 }

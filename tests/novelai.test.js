@@ -1,0 +1,23 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import handler from '../api/images.js';
+import {novelaiPayload} from '../novelai-images.js';
+import {validImageRequest} from '../image-request.js';
+import {imagesHTML,novelaiPrompt,imageTargets} from '../image-assets.js';
+import {freshState} from '../engine.js';
+const req=extra=>({method:'POST',headers:{'x-game-access-code':'test-code'},body:{kind:'person',prompt:'adult space navigator, upper body',quality:'low',provider:'novelai',seed:42,negativePrompt:'text, watermark',...extra}});
+const response=()=>({setHeader(){},end(text){this.data=JSON.parse(text);}});
+test('NovelAI payload is bounded to one image, supports zero and fixed seeds, and uses V4 captions',()=>{const p=novelaiPayload(req({seed:0}).body,'nai-diffusion-4-5-full');assert.equal(p.parameters.seed,0);assert.equal(p.parameters.n_samples,1);assert.equal(p.parameters.steps,28);assert.equal(p.parameters.width*p.parameters.height,832*1216);assert.equal(p.parameters.v4_prompt.caption.base_caption,p.input);assert.equal(p.parameters.v4_negative_prompt.caption.base_caption,'text, watermark');assert.equal(p.parameters.image_format,'webp');for(const extra of [{provider:'evil'},{seed:-1},{seed:4294967296},{seed:1.1},{negativePrompt:'x'.repeat(1501)}])assert.equal(validImageRequest(req(extra).body),false);});
+test('NovelAI works without an OpenAI key, protects its token, handles status/errors and never retries',async t=>{
+ const keys=['OPENAI_API_KEY','GAME_ACCESS_CODE','NOVELAI_API_TOKEN'],old=Object.fromEntries(keys.map(k=>[k,process.env[k]]));delete process.env.OPENAI_API_KEY;process.env.GAME_ACCESS_CODE='test-code';process.env.NOVELAI_API_TOKEN='novel-secret';t.after(()=>{for(const k of keys)if(old[k]===undefined)delete process.env[k];else process.env[k]=old[k];});
+ let calls=0,payload;const png=Buffer.from([137,80,78,71,13,10,26,10,1,2,3]).toString('base64');
+ t.mock.method(globalThis,'fetch',async(url,opts)=>{calls++;assert.equal(url,'https://image.novelai.net/ai/generate-image');assert.equal(opts.headers.Authorization,'Bearer novel-secret');assert.equal(opts.headers.Accept,'application/json');payload=JSON.parse(opts.body);if(calls===2)return {ok:false,status:402};return {ok:true,json:async()=>({images:[{image:calls===3?'YmFk':png,seed:42}]})};});
+ let r=response();await handler({method:'GET'},r);assert.equal(r.data.providers.novelai.configured,true);assert.equal(r.data.providers.openai.configured,false);assert.ok(!JSON.stringify(r.data).includes('novel-secret'));
+ r=response();await handler({...req(),headers:{}},r);assert.equal(r.statusCode,401);assert.equal(calls,0);
+ delete process.env.NOVELAI_API_TOKEN;r=response();await handler(req(),r);assert.equal(r.statusCode,503);assert.equal(calls,0);process.env.NOVELAI_API_TOKEN='novel-secret';
+ r=response();await handler(req(),r);assert.equal(r.statusCode,200);assert.equal(r.data.provider,'novelai');assert.equal(r.data.usage,null);assert.equal(r.data.seed,42);assert.match(r.data.image,/^data:image\/png/);assert.match(r.data.model,/^novelai\//);assert.equal(payload.parameters.n_samples,1);assert.ok(!JSON.stringify(r.data).includes('novel-secret'));
+ r=response();await handler(req(),r);assert.equal(r.statusCode,502);assert.match(r.data.error,/Anlas/);assert.equal(calls,2);
+ r=response();await handler(req(),r);assert.equal(r.statusCode,502);assert.match(r.data.error,/형식/);assert.equal(calls,3);
+ r=response();await handler(req(),r);assert.equal(r.statusCode,429);assert.equal(calls,3);
+});
+test('studio exposes provider readiness, seed and negative prompt, without modifying original art',()=>{const s=freshState(),before=structuredClone(s),html=imagesHTML(s,'ship:nomad',{provider:'novelai',negativePrompt:'<script>',providers:{novelai:{configured:false}}});assert.match(html,/NOVELAI_API_TOKEN/);assert.match(html,/image-seed/);assert.match(html,/image-negative/);assert.match(html,/&lt;script&gt;/);assert.match(html,/Anlas 사용 가능/);assert.match(html,/assets\/nomad.jpg/);assert.match(novelaiPrompt(imageTargets(s)[0]),/spaceship/);assert.deepEqual(s,before);});
