@@ -5,7 +5,7 @@ import {normalizeUsage} from '../usage.js';
 const limits=new Map(),inflight=new Set();
 const send=(res,status,data)=>{res.statusCode=status;res.setHeader('Content-Type','application/json; charset=utf-8');res.setHeader('Cache-Control','no-store');res.end(JSON.stringify(data));};
 export default async function handler(req,res){
- const model=process.env.OPENAI_IMAGE_MODEL||'gpt-image-1-mini';
+ const model='gpt-image-2';
  if(req.method==='GET')return send(res,200,{configured:!!(process.env.OPENAI_API_KEY&&process.env.GAME_ACCESS_CODE),model,providers:{openai:{configured:!!(process.env.OPENAI_API_KEY&&process.env.GAME_ACCESS_CODE),model},novelai:{configured:!!(process.env.NOVELAI_API_TOKEN&&process.env.GAME_ACCESS_CODE),model:process.env.NOVELAI_IMAGE_MODEL||'nai-diffusion-4-5-full'}}});
  if(req.method!=='POST')return send(res,405,{error:'POST 요청이 필요합니다.'});
  if(!process.env.GAME_ACCESS_CODE)return send(res,503,{error:'서버 API 키와 GAME_ACCESS_CODE 설정이 필요합니다.'});
