@@ -1,0 +1,1 @@
+export const validImageRequest=b=>!!b&&['ship','planet','person'].includes(b.kind)&&typeof b.prompt==='string'&&b.prompt.trim().length>0&&b.prompt.length<=3500&&['low','medium','high'].includes(b.quality);

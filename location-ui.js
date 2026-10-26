@@ -1,3 +1,4 @@
+import {imageSlot} from './image-assets.js';
 import {localMissionsHTML} from './mission-ui.js';
 import {place,PLACES,LOCATION_TYPES,routeFor,availableLocalActions,planetPurchaseStatus} from './world-data.js';
 import {faction} from './factions.js';
@@ -5,7 +6,7 @@ const fmt=n=>Math.floor(n).toLocaleString('ko-KR');
 export function locationHTML(s,id,{confirmPurchase=false}={}){
  const p=place(id,s),type=LOCATION_TYPES[p.type],here=!s.travel&&s.location===id,r=routeFor(s,id),owner=faction(p.factionId),owned=s.diplomacy.ownedPlanets.includes(id);
  const actions=availableLocalActions(s,id);
- return `<div class="location-panel"><div class="location-state"><span class="tag">${type.name}</span><span class="${here?'gain':'muted'}">${here?'● 현재 위치 · 구역 행동':s.travel?'항해 중 · 목적지 정보':'목적지 미리보기 · 도착 후 행동 가능'}</span></div><div class="location-title"><div class="planet-icon" style="color:${p.color}">${type.icon}</div><div><h2>${p.name}</h2><small>${p.en}</small></div></div><p class="description">${p.desc}</p><div class="facts"><div class="fact"><small>관할 / 소유</small><strong>${owned?'CSV 노마드 · 함장 소유':p.faction}</strong></div><div class="fact"><small>${here?'현지 조사':'필요 연료 / 소요 시간'}</small><strong>${here?(type.survey?(s.survey[id]||0)+' / 3':'공공 서비스 이용'):r?r.fuel+' 연료 · '+r.total+'h':'—'}</strong></div></div>
+ return `<div class="location-panel"><div class="location-state"><span class="tag">${type.name}</span><span class="${here?'gain':'muted'}">${here?'● 현재 위치 · 구역 행동':s.travel?'항해 중 · 목적지 정보':'목적지 미리보기 · 도착 후 행동 가능'}</span></div><div class="location-title"><div class="planet-icon" style="color:${p.color}">${type.icon}</div><div><h2>${p.name}</h2><small>${p.en}</small></div></div>${p.type==='planet'?imageSlot(s,'planet:'+p.id):''}<p class="description">${p.desc}</p><div class="facts"><div class="fact"><small>관할 / 소유</small><strong>${owned?'CSV 노마드 · 함장 소유':p.faction}</strong></div><div class="fact"><small>${here?'현지 조사':'필요 연료 / 소요 시간'}</small><strong>${here?(type.survey?(s.survey[id]||0)+' / 3':'공공 서비스 이용'):r?r.fuel+' 연료 · '+r.total+'h':'—'}</strong></div></div>
  ${!here?`<div class="actions"><button class="primary" data-action="depart" ${s.travel||s.event||!r||s.fuel<r.fuel?'disabled':''}>${s.travel?'항해 진행 중':s.fuel<(r?.fuel||0)?'출항 연료 부족':'이 구역으로 항로 설정 →'}</button></div>`:''}
  <h3 class="subhead">${here?'이곳에서 할 수 있는 일':'구역 도착 후 가능한 행동'}</h3><div class="location-actions">${actions.map(a=>`<button data-local-action="${a.id}" ${a.disabled?'disabled':''}><strong>${a.title}</strong><small>${a.detail}</small>${a.reason?`<em>${a.reason}</em>`:''}</button>`).join('')}</div>
  ${here?localMissionsHTML(s,id):''}

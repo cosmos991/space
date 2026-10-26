@@ -9,6 +9,10 @@
     "api/explore.js": {
       "maxDuration": 60,
       "includeFiles": "{galaxy-gen,usage,crew-data}.js"
+    },
+    "api/images.js": {
+      "maxDuration": 120,
+      "includeFiles": "{image-request,usage,crew-data}.js"
     }
   }
 }
