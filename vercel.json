@@ -21,6 +21,10 @@
     "api/crew-prompt.js": {
       "maxDuration": 60,
       "includeFiles": "{usage,crew-data}.js"
+    },
+    "api/mission-brief.js": {
+      "maxDuration": 30,
+      "includeFiles": "{comms-levels,outcome-data,galaxy,galaxy-gen,engine,economy,usage,events,communications,world-data,factions,news,combat,equipment,missions,cargo,crew,crew-data}.js"
     }
   },
   "headers": [

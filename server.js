@@ -1,3 +1,4 @@
+import missionBriefHandler from './api/mission-brief.js';
 import accessHandler from './api/access.js';
 import crewPromptHandler from './api/crew-prompt.js';
 import archiveHandler from './api/archive.js';
@@ -12,9 +13,9 @@ const mime={html:'text/html; charset=utf-8',css:'text/css; charset=utf-8',js:'te
 const root=fileURLToPath(new URL('.',import.meta.url));
 const server=http.createServer(async(req,res)=>{
  const pathname=new URL(req.url,'http://localhost').pathname;
- if(pathname==='/api/access'||pathname==='/api/crew-prompt'||pathname==='/api/archive'||pathname==='/api/images'||pathname==='/api/comms'||pathname==='/api/explore'){
+ if(pathname==='/api/mission-brief'||pathname==='/api/access'||pathname==='/api/crew-prompt'||pathname==='/api/archive'||pathname==='/api/images'||pathname==='/api/comms'||pathname==='/api/explore'){
   let chunks=[],size=0;try{for await(const chunk of req){size+=chunk.length;if(size>(pathname==='/api/archive'?4200000:64000)){res.writeHead(413);res.end('Request too large');return;}chunks.push(chunk);}req.body=chunks.length?JSON.parse(Buffer.concat(chunks).toString()):undefined;}catch{res.writeHead(400);res.end('{"error":"Invalid JSON"}');return;}
-  return (pathname==='/api/access'?accessHandler:pathname==='/api/crew-prompt'?crewPromptHandler:pathname==='/api/archive'?archiveHandler:pathname==='/api/images'?imageHandler:pathname==='/api/explore'?exploreHandler:handler)(req,res);
+  return (pathname==='/api/mission-brief'?missionBriefHandler:pathname==='/api/access'?accessHandler:pathname==='/api/crew-prompt'?crewPromptHandler:pathname==='/api/archive'?archiveHandler:pathname==='/api/images'?imageHandler:pathname==='/api/explore'?exploreHandler:handler)(req,res);
  }
  const file=files[pathname];if(!file){res.writeHead(404);res.end('Not found');return;}
  try{const content=await readFile(root+file);res.writeHead(200,{'Content-Type':mime[file.split('.').at(-1)],'X-Content-Type-Options':'nosniff','Cache-Control':'no-store'});res.end(content);}catch{res.writeHead(500);res.end('Unable to load application');}

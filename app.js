@@ -1,3 +1,4 @@
+import {missionTemplate,storeMissionBrief} from './missions.js';
 import {channelLevel,setChannelLevel,setCrewLevel} from './comms-levels.js';
 import {createUrgentComms} from './urgent-comms.js';
 import {outcomeSnapshot} from './outcome-data.js';
@@ -42,7 +43,7 @@ const KEY='asterion-save-v1';let state=freshState(),selected='terra',tab='naviga
 let startupSave;try{startupSave=readProgress(localStorage);}catch{startupSave={blocked:true,warning:'브라우저 저장소에 접근할 수 없습니다. 파일로 저장해 주세요.'};}let saveBlocked=!!startupSave.blocked;if(startupSave.state)state=startupSave.state;
 let chartFilter='all',chartPoint='';
 selected=state.location;let focusedFaction='union',confirmPurchase=false;
-let combatAnimating=false;
+let combatAnimating=false,missionBriefPending='';
 let selectedCrew=state.crew.roster[0]?.id||CREW_CANDIDATES[0].id,crewView='aboard',crewReview='',crewProfileOpen=false;const crewDrafts={},crewAssignments={};
 let generating=false,generationPreview=false;
 let crewPromptSuggestion=null;
@@ -124,8 +125,8 @@ function renderDetail(){cancelCombatEffects();syncPanelNavigation();if(!workspac
  if(tab==='news')html+=newsHTML(state);
  if(tab==='combat')html+=combatHTML(state);
  if(tab==='navigation')html+=chartPoint?chartDetailHTML(state,chartPoint):locationHTML(state,selected,{confirmPurchase});
- if(tab==='factions')html+=factionsHTML(state,focusedFaction,{review:reviewMission,selectedMission});
- if(tab==='missions')html+=missionsHTML(state,{factionId:focusedFaction,review:reviewMission,selected:selectedMission});
+ if(tab==='factions')html+=factionsHTML(state,focusedFaction,{review:reviewMission,selectedMission,briefPending:missionBriefPending});
+ if(tab==='missions')html+=missionsHTML(state,{factionId:focusedFaction,review:reviewMission,selected:selectedMission,briefPending:missionBriefPending});
  if(tab==='market')html+=tradingHTML(state,order);
  if(tab==='assets'){html+=`<div class="section-kicker">ASSET MANAGEMENT</div><div class="asset-card"><span class="tag">기함 / OWNED</span><img class="asset-ship-image" src="${esc(imageSource(state,'ship:nomad','/assets/nomad.jpg'))}" width="1536" height="1024" alt="CSV 노마드 탐사선" loading="lazy"><button data-image-target="ship:nomad">이미지 생성·관리</button><h3>CSV 노마드</h3><p>독립 탐사선 · 화물 40t · 연료 100<br>현재 위치: ${state.travel?'항해 중':place(state.location,state).name}</p></div>${state.outpost?'<div class="asset-card"><span class="tag">가동 중</span><h3>케플러 채굴 전초기지</h3><p>자동 채굴 수익이 시뮬레이션 시간에 따라 입금됩니다.</p><div class="income">+9 <small>CR / h</small></div></div>':'<div class="empty">아직 보유한 시설이 없습니다.<br>케플러 소행성대를 탐사한 뒤<br>2,000 CR으로 채굴 전초기지를 건설하세요.</div>'}<div class="facts"><div class="fact"><small>완료한 계약</small><strong>${state.completed} 건</strong></div><div class="fact"><small>정기 수익</small><strong>${fmt((state.outpost?9:0)+planetIncome(state))} CR / h</strong></div></div>${state.diplomacy.ownedPlanets.map(id=>`<div class="asset-card"><span class="tag">행성 소유</span><h3>${place(id,state).name}</h3><p>행정 소유권 등록 완료 · 기본 세수</p><div class="income">+${fmt(place(id,state).income)} CR / h</div></div>`).join('')}<p class="hint">정거장은 구매할 수 없습니다. 행성 소유권은 자금·명예·관할 팩션 신뢰 조건을 충족하면 매입할 수 있습니다.</p>`;}
  if(tab==='comms')html+=commsHTML(state,{busy,channel,accessCode,draft:radioDrafts[state.comms.active]||'',addOpen:radioAddOpen,speed,FACTIONS,listOpen:commsListOpen});
@@ -318,3 +319,5 @@ function resizePersonalViewport(){if(!window.visualViewport||!matchMedia('(max-w
 window.visualViewport?.addEventListener('resize',resizePersonalViewport);window.visualViewport?.addEventListener('scroll',resizePersonalViewport);resizePersonalViewport();
 
 document.addEventListener('change',e=>{if(!['comms-ai-level','crew-ai-level'].includes(e.target.id))return;if(busy)return;act(()=>{if(e.target.id==='crew-ai-level')setCrewLevel(state,tab==='data'?dataContact:selectedCrew,e.target.value);else setChannelLevel(state,state.comms.active,e.target.value);toast('AI 수준을 저장했습니다. 다음 전송부터 적용됩니다.');});});
+
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-mission-brief],[data-mission-brief-clear]');if(!b)return;if(busy||cloud.busy||imagePending||generating){toast('진행 중인 작업이 끝난 뒤 설명을 생성하세요.',true);return;}const id=b.dataset.missionBrief||b.dataset.missionBriefClear;if(!missionTemplate(id))return;if(b.dataset.missionBriefClear){delete state.missions.briefs?.[id];save();renderDetail();return;}if(state.missions.briefs?.[id])return;const origin=state,started=performance.now(),time=Date.now(),requestId=crypto.randomUUID();let metadata=null,ok=false;setSpeed(0);busy=true;missionBriefPending=id;renderDetail();try{const response=await fetch('/api/mission-brief',{method:'POST',headers:{'Content-Type':'application/json','x-game-access-code':accessCode},body:JSON.stringify({template:id}),signal:AbortSignal.timeout(28000)});metadata=await response.json();if(!response.ok)throw Error(metadata.error||'의뢰 설명 생성 실패');if(state!==origin)return;storeMissionBrief(state,id,metadata);save();ok=true;toast('AI 의뢰 설명을 저장했습니다. 실제 임무 조건은 유지됩니다.');}catch(error){toast(error.message,true);}finally{trackRequest({id:requestId,time,duration:performance.now()-started,faction:'mission-brief',mode:metadata?.mode||'unknown',model:metadata?.model||'gpt-6-luna',usage:metadata?.usage,ok});busy=false;missionBriefPending='';renderDetail();}});
