@@ -1,3 +1,4 @@
+import {getOfficerLinks,setOfficerLinks,validOfficerLink,officerLinksHTML} from './officer-links.js';
 import {createEntry} from './intro-ui.js';
 import {buyTradeProduct} from './faction-shop.js';
 import {equipBadge,badgeLabel} from './factions.js';
@@ -46,10 +47,12 @@ let dataSection='home',dataContact='';
 let imagesReady=Promise.resolve(),imagesLoaded=false;
 let cloud={configured:false,checked:false,busy:false,progress:'',error:'',archives:[],review:''};
 const PROMPT_KEY='asterion-image-prompts-v1';
-function promptSettings(){return {drafts:{...imageDrafts},negative:{...imageNegative},seeds:{...imageSeeds},provider:imageProvider,positiveBase:getPositiveBase()};}
+function promptSettings(){return {drafts:{...imageDrafts,...Object.fromEntries(Object.entries(getOfficerLinks()).map(([id,url])=>['officer-link:'+id,url]))},negative:{...imageNegative},seeds:{...imageSeeds},provider:imageProvider,positiveBase:getPositiveBase()};}
+function restoreOfficerLinks(){setOfficerLinks(Object.fromEntries(FACTIONS.map(f=>[f.id,imageDrafts['officer-link:'+f.id]||''])));}
 function persistPrompts(){try{localStorage.setItem(PROMPT_KEY,JSON.stringify(promptSettings()));}catch{toast('프롬프트를 브라우저에 저장하지 못했습니다.',true);}}
 try{const settings=JSON.parse(localStorage.getItem(PROMPT_KEY));if(settings&&typeof settings==='object'){if(typeof settings.positiveBase==='string'&&settings.positiveBase.trim()&&settings.positiveBase.length<=3500)setPositiveBase(settings.positiveBase);for(const [key,target,max]of [['drafts',imageDrafts,3500],['negative',imageNegative,1500],['seeds',imageSeeds,12]])for(const [k,v]of Object.entries(settings[key]||{}))if(!['__proto__','prototype','constructor'].includes(k)&&/^[a-zA-Z0-9:_-]{1,180}$/.test(k)&&typeof v==='string'&&v.length<=max)target[k]=v;}}catch{}
 
+restoreOfficerLinks();
 function crewConversationOpen(id=selectedCrew){return (tab==='crew'&&selectedCrew===id)||(tab==='data'&&dataSection==='contacts'&&dataContact===id);}
 let reviewMission='',selectedMission='';
 let gearSlot='weapon',gearView='shop',gearFamily='all';
@@ -65,7 +68,7 @@ const fmt=n=>Math.floor(n).toLocaleString('ko-KR');const time=h=>`D${String(Math
 function toast(message,error=false){$('#toast').textContent=message;$('#toast').className=`visible${error?' error':''}`;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').className='',4000);}
 let fullSaveQueue=Promise.resolve();const fullSlots={};
 function captureBundle(){return createBundle(state,exportWorldImages(state),promptSettings());}
-function applyPromptSettings(settings){for(const [target,source]of [[imageDrafts,settings.drafts],[imageNegative,settings.negative],[imageSeeds,settings.seeds]]){for(const k of Object.keys(target))delete target[k];Object.assign(target,source);}imageProvider=settings.provider;setPositiveBase(settings.positiveBase);persistPrompts();}
+function applyPromptSettings(settings){for(const [target,source]of [[imageDrafts,settings.drafts],[imageNegative,settings.negative],[imageSeeds,settings.seeds]]){for(const k of Object.keys(target))delete target[k];Object.assign(target,source);}imageProvider=settings.provider;setPositiveBase(settings.positiveBase);restoreOfficerLinks();persistPrompts();}
 function queueFullSave(){const captured=imagesLoaded?captureBundle():null;fullSaveQueue=fullSaveQueue.catch(()=>{}).then(async()=>{await imagesReady;await writeBundle('auto',captured||captureBundle());});fullSaveQueue.catch(error=>{toast(error.message,true);$('#save-status').textContent='전체 저장 실패';});return fullSaveQueue;}
 function save(manual=false){if(!entryAuthorized)return false;try{if(saveBlocked)throw Error('기존 저장본 보호 중입니다. 저장·불러오기에서 복원해 주세요.');writeProgress(localStorage,state);$('#save-status').textContent='전체 저장 중…';queueFullSave().then(()=>{$('#save-status').textContent='전체 저장 '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});if(manual)toast('게임·이미지·프롬프트를 함께 저장했습니다.');}).catch(()=>{});return true;}catch(error){if(!saveWarning||manual)toast(error.message||'저장에 실패했습니다. 파일로 내보내 주세요.',true);saveWarning=true;$('#save-status').textContent='저장 확인 필요';return false;}}
 function progressHTML(){let slots='';for(let n=1;n<=3;n++){let summary='비어 있음',exists=false;try{if(fullSlots[n]){const bundle=fullSlots[n];summary=new Date(bundle.time).toLocaleString('ko-KR')+' · 선원 '+bundle.state.crew.roster.length+'명 · 이미지 '+bundle.images.reduce((v,r)=>v+r.versions.length,0)+'장 · 전체 저장';exists=true;}else {const raw=localStorage.getItem(slotKey(n));if(raw){const value=JSON.parse(raw),s=decodeSave(JSON.stringify(value.state));summary=new Date(value.time).toLocaleString('ko-KR')+' · D'+(Math.floor(s.hours/24)+1)+' · 선원 '+s.crew.roster.length+'명';exists=true;}}}catch{summary='손상된 저장본 · 파일 복원 필요';}slots+=`<article class="progress-slot"><h3>슬롯 ${n}</h3><p>${esc(summary)}</p><div class="actions"><button data-progress-save="${n}">현재 진행 저장</button><button data-progress-load="${n}" ${exists?'':'disabled'}>불러오기</button></div></article>`;}return `<section><p class="hint">게임 진행·승무원·이미지 원본과 적용 상태·프롬프트를 함께 저장합니다. 슬롯과 내보내기 파일도 동일한 전체 저장본입니다. 클라우드는 같은 내용을 서버에 보관합니다. 구버전 슬롯은 게임 진행만 포함하며 기존 이미지를 지우지 않습니다.</p><div class="actions"><button data-progress-auto>최근 자동 저장 불러오기</button><button data-progress-backup>이전 자동 백업 불러오기</button><button data-progress-before>복원 전 전체 백업 불러오기</button><button data-progress-export>전체 저장 파일 내보내기</button><label class="progress-import">게임 파일 불러오기<input id="progress-import" type="file" accept=".json,application/json"></label><button data-data-section="cloud">클라우드 보관함</button></div>${slots}</section>`;}
@@ -102,6 +105,7 @@ function animateDetail(){const key=[tab,tab==='data'?dataSection:'',tab==='data'
 function renderDetail(){cancelCombatEffects();syncPanelNavigation();if(!workspacePanel.open)return;workspacePanel.dataset.panel=tab;workspacePanel.classList.toggle('personal-panel',PERSONAL_PANELS.includes(tab));$('#panel-title').textContent=PANEL_META[tab][0];$('#panel-kicker').textContent=PANEL_META[tab][1];const combatTab=$('#combat-tab');if(combatTab)combatTab.hidden=!state.combat;let html=tab==='combat'?'':eventHTML();const dataStart=html.length;
  if(tab==='data'&&dataSection==='contacts'){if(dataContact)readCrew(state,dataContact);html+=dataContact?contactHTML(state,dataContact,{busy,draft:crewDrafts[dataContact]||'',accessCode,channel}):contactsHTML(state);}
  if(tab==='galaxy')html+=galaxyHTML(state,{generating,accessCode});
+ if(tab==='data'&&dataSection==='portraits')html+=officerLinksHTML(FACTIONS);
  if(tab==='data'&&dataSection==='events')html+=eventSettingsHTML(state);
  if(tab==='data'&&dataSection==='saves')html+=progressHTML();
  if(tab==='data'&&dataSection==='cloud')html+=cloudHTML({...cloud,code:accessCode});
@@ -257,7 +261,7 @@ document.addEventListener('click',async e=>{
    catch(error){await replaceWorldImages(next,priorImages);if(previousJSON!==null)localStorage.setItem(KEY,previousJSON);throw error;}
    state=next;selected=state.location;selectedCrew=state.crew.roster[0]?.id||'';dataContact='';imageTarget='person:test-navigator';newsSignature='';
    for(const [target,source]of [[imageDrafts,loaded.settings.drafts],[imageNegative,loaded.settings.negative],[imageSeeds,loaded.settings.seeds]]){for(const k of Object.keys(target))delete target[k];Object.assign(target,source);}
-   imageProvider=loaded.settings.provider;setPositiveBase(loaded.settings.positiveBase);persistPrompts();cloud.review='';saveBlocked=false;save();toast('저장본의 게임·이미지·프롬프트를 복원했습니다.');render();
+   imageProvider=loaded.settings.provider;setPositiveBase(loaded.settings.positiveBase);restoreOfficerLinks();persistPrompts();cloud.review='';saveBlocked=false;save();toast('저장본의 게임·이미지·프롬프트를 복원했습니다.');render();
   }
   const result=await archiveRequest(accessCode,'list');cloud.archives=result.archives||[];
  }catch(error){cloud.error=error.message||'클라우드 작업 실패';toast(cloud.error,true);}
@@ -286,3 +290,6 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-faction-pr
 
 const entry=createEntry({hasSave:()=>!!startupSave.state||!!state.crew.roster.length||state.hours>0,onAuthorized:async code=>{accessCode=code;try{sessionStorage.setItem('asterion-access',code);}catch{}await imagesReady.catch(()=>{});entryAuthorized=true;},getCrew:()=>state.crew.roster.map(m=>crewMember(m.id,state)).filter(Boolean),onEnter:()=>{setSpeed(0);render();save();}});
 entry.start(accessCode);
+
+let officerPreviewBusy=false;
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-officer-preview],[data-officer-apply],[data-officer-clear]');if(!b||officerPreviewBusy||cloud.busy)return;const id=b.dataset.officerPreview||b.dataset.officerApply||b.dataset.officerClear;if(!FACTIONS.some(f=>f.id===id))return;const box=$('#officer-preview-'+id),field=$('#officer-link-'+id);if(b.dataset.officerClear){delete imageDrafts['officer-link:'+id];restoreOfficerLinks();persistPrompts();save();renderDetail();toast('외부 링크를 해제했습니다.');return;}const url=field.value.trim();if(!validOfficerLink(url)){toast('HTTPS 원본 이미지 주소를 입력해 주세요.',true);return;}officerPreviewBusy=true;b.disabled=true;box.textContent='이미지 연결 확인 중…';try{const img=new Image();img.referrerPolicy='no-referrer';img.alt=FACTIONS.find(f=>f.id===id).contact.name+' 미리보기';await new Promise((resolve,reject)=>{const timer=setTimeout(()=>{img.src='';reject(Error('이미지 응답 시간이 초과되었습니다.'));},12000);img.onload=()=>{clearTimeout(timer);if(!img.naturalWidth)reject(Error('이미지를 읽지 못했습니다.'));else resolve();};img.onerror=()=>{clearTimeout(timer);reject(Error('이미지를 불러오지 못했습니다. 공유 페이지가 아닌 원본 이미지 링크인지 확인하세요.'));};img.src=url;});if(!box.isConnected)return;box.replaceChildren(img);const label=document.createElement('p');label.textContent=b.dataset.officerApply?'링크 적용 중':'미리보기 · 아직 적용하지 않음';box.append(label);if(b.dataset.officerApply){imageDrafts['officer-link:'+id]=url;restoreOfficerLinks();persistPrompts();save();toast('담당관 이미지 링크를 적용했습니다.');}}catch(error){if(box.isConnected)box.textContent=error.message;toast(error.message,true);}finally{officerPreviewBusy=false;b.disabled=false;}});

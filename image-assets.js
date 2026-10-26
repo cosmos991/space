@@ -1,3 +1,4 @@
+import {officerLink} from './officer-links.js';
 import {allPlaces} from './world-data.js';
 import {knownCrew} from './crew.js';
 import {FACTIONS} from './factions.js';
@@ -40,7 +41,7 @@ function database(){return dbPromise??=new Promise((resolve,reject)=>{const r=in
 export async function loadImages(){const db=await database();await new Promise((resolve,reject)=>{const tx=db.transaction('assets'),r=tx.objectStore('assets').getAll();r.onsuccess=()=>{records.clear();for(const a of r.result)records.set(a.key,a);};tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});}
 const keyFor=(s,id)=>s.galaxy.seed+':'+id;
 export const imageRecord=(s,id)=>records.get(keyFor(s,id))||{key:keyFor(s,id),active:null,versions:[]};
-export function imageSource(s,id,original=''){const r=imageRecord(s,id);return r.versions.find(v=>v.id===r.active)?.data||original;}
+export function imageSource(s,id,original=''){if(id.startsWith('person:faction-')&&officerLink(id))return officerLink(id);const r=imageRecord(s,id);return r.versions.find(v=>v.id===r.active)?.data||original;}
 async function persist(record){const db=await database();await new Promise((resolve,reject)=>{const tx=db.transaction('assets','readwrite');tx.objectStore('assets').put(record);tx.oncomplete=resolve;tx.onerror=()=>reject(Error('이미지를 저장하지 못했습니다. 저장 공간을 확인하세요.'));tx.onabort=()=>reject(Error('이미지 저장이 취소되었습니다.'));});records.set(record.key,record);}
 export const exportWorldImages=s=>[...records.values()].filter(r=>r.key.startsWith(s.galaxy.seed+':')).map(r=>structuredClone(r));
 export async function replaceWorldImages(s,images){
