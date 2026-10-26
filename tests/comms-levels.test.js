@@ -1,10 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import handler from '../api/comms.js';
-import {freshState,validSave} from '../engine.js';
+import {freshState,validSave,crewOrder} from '../engine.js';
 import {commsHTML,channelMessagesHTML} from '../comms-ui.js';
-import {setChannelLevel,channelLevel,COMMS_LEVELS} from '../comms-levels.js';
+import {setChannelLevel,setCrewLevel,channelLevel,COMMS_LEVELS} from '../comms-levels.js';
 import {append,selectChannel} from '../communications.js';
+import {contactHTML} from '../data-ui.js';
+import {crewHTML,crewMessagesHTML} from '../crew-ui.js';
+import {crewMessage} from '../crew.js';
 const response=()=>({setHeader(){},end(s){this.data=JSON.parse(s);}});
 function configure(t){const old={OPENAI_API_KEY:process.env.OPENAI_API_KEY,GAME_ACCESS_CODE:process.env.GAME_ACCESS_CODE,OPENAI_MODEL:process.env.OPENAI_MODEL};Object.assign(process.env,{OPENAI_API_KEY:'test-key',GAME_ACCESS_CODE:'test-code',OPENAI_MODEL:'legacy-default'});t.after(()=>{for(const [k,v]of Object.entries(old))if(v===undefined)delete process.env[k];else process.env[k]=v;});}
 const req=body=>({method:'POST',headers:{'x-game-access-code':'test-code'},socket:{remoteAddress:'level-tests'},body:{messages:[{role:'user',content:'안녕하세요'}],...body}});
@@ -28,4 +31,15 @@ test('local mode never calls the provider; explicit AI without a key fails clear
 });
 test('response badges store actual model safely and survive a save round trip',()=>{
  const s=freshState(31);selectChannel(s,'dm-union');append(s.comms,'dm-union',{role:'assistant',content:'답변',author:'연락관',hours:s.hours,mode:'ai',model:'<script>'});const html=channelMessagesHTML(s);assert.match(html,/AI · &lt;script&gt;/);assert.ok(validSave(JSON.parse(JSON.stringify(s))));
+});
+test('crew level is individual, appears in personal and management conversations and survives saves with response metadata',()=>{
+ const s=freshState(32);crewOrder(s,'harin','meet');crewOrder(s,'harin','hire');assert.equal(channelLevel(s.crew.records.harin),'economy');setCrewLevel(s,'harin','advanced');setCrewLevel(s,'gaon','local');
+ const before=structuredClone(s);assert.match(contactHTML(s,'harin'),/id="crew-ai-level"/);assert.match(crewHTML(s,{id:'harin'}),/id="crew-ai-level"/);assert.deepEqual(s,before);
+ crewMessage(s,'harin','assistant','함장님, 확인했습니다.',{mode:'ai',model:'gpt-6-astra'});assert.match(crewMessagesHTML(s,'harin'),/AI · gpt-6-astra/);
+ const restored=JSON.parse(JSON.stringify(s));assert.ok(validSave(restored));assert.equal(channelLevel(restored.crew.records.harin),'advanced');assert.equal(channelLevel(restored.crew.records.gaon),'local');assert.equal(channelLevel(restored.comms.channels[0]),'economy');
+ assert.throws(()=>setCrewLevel(s,'missing','economy'));s.crew.records.harin.aiLevel='bad';assert.equal(validSave(s),false);
+});
+test('crew selected AI level uses the same server allowlist while retaining the chosen character identity',async t=>{
+ configure(t);let payload;t.mock.method(globalThis,'fetch',async(url,options)=>{payload=JSON.parse(options.body);return {ok:true,json:async()=>({model:payload.model,usage:{input_tokens:15,output_tokens:7,total_tokens:22},output:[{content:[{type:'output_text',text:'서하린입니다.'}]}]})};});
+ const r=response();await handler(req({crewId:'harin',level:'standard'}),r);assert.equal(r.statusCode,200);assert.equal(payload.model,'gpt-6.1-sol');assert.match(payload.instructions,/서하린/);assert.equal(r.data.usage.total,22);
 });

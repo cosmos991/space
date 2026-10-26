@@ -1,4 +1,4 @@
-import {channelLevel,setChannelLevel} from './comms-levels.js';
+import {channelLevel,setChannelLevel,setCrewLevel} from './comms-levels.js';
 import {createUrgentComms} from './urgent-comms.js';
 import {outcomeSnapshot} from './outcome-data.js';
 import {eventResult,combatResult,showResultFeedback} from './result-feedback.js';
@@ -183,13 +183,13 @@ document.addEventListener('submit',async e=>{if(cloud.busy){e.preventDefault();r
 });
 document.addEventListener('submit',async e=>{if(cloud.busy){e.preventDefault();return;}
  if(e.target.id!=='crew-chat-form')return;e.preventDefault();if(busy)return;
- const id=tab==='data'?dataContact:selectedCrew,text=$('#crew-message').value.trim(),member=aboard(state,id);if(!text||!canContactCrew(state,id))return;
+ const id=tab==='data'?dataContact:selectedCrew,text=$('#crew-message').value.trim(),member=aboard(state,id),level=channelLevel(state.crew.records[id]);if(!text||!canContactCrew(state,id))return;
  setSpeed(0);const runState=state,started=performance.now(),timestamp=Date.now(),requestId=crypto.randomUUID();let metadata=null,ok=false;
  contactCrew(state,id,text);crewDrafts[id]='';busy=true;save();renderDetail();
  try{
-  const response=await fetch('/api/comms',{method:'POST',headers:{'Content-Type':'application/json',...(accessCode?{'X-Game-Access-Code':accessCode}:{})},body:JSON.stringify({crewId:id,generatedCrew:crewMember(id,state)?.generated?crewMember(id,state):undefined,messages:state.crew.records[id].messages.filter(m=>['user','assistant'].includes(m.role)).slice(-10).map(m=>({role:m.role,content:m.content.slice(0,2000)})),context:{location:place(state.location,state).name,travel:state.travel?place(state.travel.to,state).name:null,fuel:state.fuel,hull:state.hull,shield:state.shield,credits:Math.floor(state.credits),ship:shipStats(state),crew:{name:crewMember(id,state).name,aboard:!!member,assignment:member?.assignment||null,firstMeeting:state.crew.records[id].met||null,trust:state.crew.records[id].trust,owed:state.crew.payroll.owed},missions:(state.missions?.active||[]).map(m=>({template:m.template,progress:m.progress,cargo:m.cargo})),event:state.event?{title:state.event.title}:null}}),signal:AbortSignal.timeout(30000)});
+  const response=await fetch('/api/comms',{method:'POST',headers:{'Content-Type':'application/json',...(accessCode?{'X-Game-Access-Code':accessCode}:{})},body:JSON.stringify({level,crewId:id,generatedCrew:crewMember(id,state)?.generated?crewMember(id,state):undefined,messages:state.crew.records[id].messages.filter(m=>['user','assistant'].includes(m.role)).slice(-10).map(m=>({role:m.role,content:m.content.slice(0,2000)})),context:{location:place(state.location,state).name,travel:state.travel?place(state.travel.to,state).name:null,fuel:state.fuel,hull:state.hull,shield:state.shield,credits:Math.floor(state.credits),ship:shipStats(state),crew:{name:crewMember(id,state).name,aboard:!!member,assignment:member?.assignment||null,firstMeeting:state.crew.records[id].met||null,trust:state.crew.records[id].trust,owed:state.crew.payroll.owed},missions:(state.missions?.active||[]).map(m=>({template:m.template,progress:m.progress,cargo:m.cargo})),event:state.event?{title:state.event.title}:null}}),signal:AbortSignal.timeout(30000)});
   const data=await response.json();metadata=data;if(!response.ok)throw Error(data.error||'승무원 통신에 실패했습니다.');if(typeof data.reply!=='string'||!data.reply.trim())throw Error('승무원 응답이 비어 있습니다.');ok=true;
-  if(state!==runState)return;crewMessage(state,id,'assistant',data.reply);if(crewConversationOpen(id))readCrew(state,id);channel=data.mode==='ai'?'AI 통신 연결':'로컬 시뮬레이션';save();
+  if(state!==runState)return;crewMessage(state,id,'assistant',data.reply,{mode:data.mode,model:data.model});if(crewConversationOpen(id))readCrew(state,id);channel=data.mode==='ai'?'AI 통신 연결':'로컬 시뮬레이션';save();
  }catch(error){if(state===runState){crewMessage(state,id,'system',`통신 실패: ${error.name==='TimeoutError'?'응답 시간이 초과되었습니다.':error.message} 다시 전송해 주세요.`);save();}toast('승무원 통신을 완료하지 못했습니다.',true);}
  finally{trackRequest({id:requestId,time:timestamp,duration:performance.now()-started,faction:'crew:'+id,mode:metadata?.mode||'unknown',model:metadata?.model||'미확인',usage:metadata?.usage,ok});busy=false;if(['crew','data'].includes(tab))renderDetail();}
 });
@@ -317,4 +317,4 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-portrait-z
 function resizePersonalViewport(){if(!window.visualViewport||!matchMedia('(max-width:700px)').matches)return;workspacePanel.style.setProperty('--comms-height',window.visualViewport.height+'px');workspacePanel.style.setProperty('--comms-hero-height',Math.max(96,Math.min(280,window.visualViewport.height*.3))+'px');workspacePanel.style.setProperty('--comms-top',window.visualViewport.offsetTop+'px');}
 window.visualViewport?.addEventListener('resize',resizePersonalViewport);window.visualViewport?.addEventListener('scroll',resizePersonalViewport);resizePersonalViewport();
 
-document.addEventListener('change',e=>{if(e.target.id!=='comms-ai-level')return;if(busy)return;act(()=>{setChannelLevel(state,state.comms.active,e.target.value);toast('이 채널의 AI 수준을 저장했습니다. 다음 전송부터 적용됩니다.');});});
+document.addEventListener('change',e=>{if(!['comms-ai-level','crew-ai-level'].includes(e.target.id))return;if(busy)return;act(()=>{if(e.target.id==='crew-ai-level')setCrewLevel(state,tab==='data'?dataContact:selectedCrew,e.target.value);else setChannelLevel(state,state.comms.active,e.target.value);toast('AI 수준을 저장했습니다. 다음 전송부터 적용됩니다.');});});
