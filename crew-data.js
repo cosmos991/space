@@ -1,3 +1,4 @@
+import {activeDesign} from './ships-data.js';
 export const SHIP_CLASSES=[{id:'scout',name:'소형 탐사선',capacity:2,role:'낮은 유지비 · 특화 운용'},{id:'frigate',name:'호위함',capacity:3,role:'균형형 독립 항해'},{id:'destroyer',name:'구축함',capacity:4,role:'전투 · 전문 임무'},{id:'cruiser',name:'순양함',capacity:5,role:'장거리 다목적 작전'},{id:'capital',name:'주력함',capacity:5,role:'대형 모듈 · 지휘 작전'}];
 export const DEPARTMENTS={command:{name:'지휘·협업',effect:'실드 방어 회복 +2 · 추진 철수 +4%p'},tactical:{name:'전술·방어',effect:'명중 +4%p · 실드 방어 회복 +3'},engineering:{name:'기관·동력',effect:'교전 턴 종료 에너지 +2 · 냉각 +2'},navigation:{name:'항해·탐사',effect:'항해 연료 −8% · 항해 속도 +5%'},support:{name:'군수·정비',effect:'보급·수리·실드 충전 비용 −12%'}};
 export const CREW_CANDIDATES=[
@@ -9,7 +10,7 @@ export const CREW_CANDIDATES=[
 ];
 export const crewCatalog=s=>[...CREW_CANDIDATES,...Object.values(s?.galaxy?.systems||{}).flatMap(g=>g.people)];
 export const crewMember=(id,s)=>crewCatalog(s).find(c=>c.id===id);
-export const crewCapacity=s=>SHIP_CLASSES.find(c=>c.id===(s.crew?.shipClass||'scout'))?.capacity||2;
+export const crewCapacity=s=>s?.fleet?activeDesign(s).crew:SHIP_CLASSES.find(c=>c.id===(s?.crew?.shipClass||'scout'))?.capacity||2;
 export function assignmentStrength(id,assignment,s){const c=crewMember(id,s);return c?.role===assignment?1:(c?.secondary===assignment?0.5:0);}
 export function crewBonuses(s){const b={accuracy:0,shieldRegen:0,energyRegen:0,cooling:0,fuelFactor:1,speed:1,escape:0,serviceDiscount:0};if((s?.crew?.payroll?.owed||0)>1e-6)return b;for(const m of s?.crew?.roster||[]){const k=assignmentStrength(m.id,m.assignment,s);if(m.assignment==='tactical'){b.accuracy+=4*k;b.shieldRegen+=3*k;}if(m.assignment==='engineering'){b.energyRegen+=2*k;b.cooling+=2*k;}if(m.assignment==='navigation'){b.fuelFactor-=.08*k;b.speed+=.05*k;}if(m.assignment==='command'){b.escape+=4*k;b.shieldRegen+=2*k;}if(m.assignment==='support')b.serviceDiscount+=.12*k;}return b;}
 export const dailyWages=s=>(s?.crew?.roster||[]).reduce((sum,m)=>sum+(crewMember(m.id,s)?.wage||0),0);

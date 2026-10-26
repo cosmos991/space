@@ -1,3 +1,4 @@
+import {activeDesign} from './ships-data.js';
 import {COMMS_LEVELS} from './comms-levels.js';
 import {portsFor,portFor} from './economy.js';
 import {FACTIONS} from './factions.js';

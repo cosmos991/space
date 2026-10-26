@@ -1,3 +1,4 @@
+import {YARDS} from './ships-data.js';
 import {shipStats,serviceQuote} from './equipment.js';
 export const PLACES=[
  {id:'haven',name:'헤이븐 정거장',en:'HAVEN STATION',x:310,y:180,type:'station',faction:'항성 연합',factionId:'union',color:'#62ddce',desc:'성계의 입출항을 관리하는 연합 공공 정거장. 교역·보급·수리와 연합 연락 업무를 이용할 수 있습니다.',market:true,prices:{ore:34,food:22,tech:96}},
@@ -18,6 +19,7 @@ export function routeFor(s,id){const target=place(id,s),from=place(s.location,s)
 export function planetPurchaseStatus(s,id){const p=place(id,s),d=s.diplomacy;let reason='';if(!p||p.type!=='planet')reason=p?.type==='station'?'정거장은 구매할 수 없습니다.':'행성만 소유권을 매입할 수 있습니다.';else if(d?.ownedPlanets.includes(id))reason='이미 소유한 행성입니다.';else if(s.travel||s.location!==id)reason='해당 행성에 도착해야 합니다.';else if(s.event)reason='긴급 상황에 먼저 대응하세요.';else if(s.credits<p.purchasePrice)reason='행성 매입에 10억 CR이 필요합니다.';else if((d?.honor||0)<p.requiredHonor)reason='성계 명예 10,000이 필요합니다.';else if((d?.reputation[p.factionId||'union']||0)<p.requiredStanding)reason='매도 팩션의 신뢰도 60이 필요합니다.';return {eligible:!reason,reason};}
 export function planetIncome(s){return (s.diplomacy?.ownedPlanets||[]).reduce((n,id)=>n+(place(id,s)?.income||0),0);}
 export function availableLocalActions(s,id=s.location){const p=place(id,s);if(!p)return [];const type=LOCATION_TYPES[p.type],here=!s.travel&&s.location===id,blocked=!here?'도착 후 이용할 수 있습니다.':s.event?'사건에 먼저 대응하세요.':'';const list=[];const add=(id,title,detail,reason='')=>list.push({id,title,detail,reason:blocked||reason,disabled:!!(blocked||reason)});
+ if(YARDS.includes(id)||['belt','ruin','nebula'].includes(p.type))add('shipyard',YARDS.includes(id)?'함선 시장·조선소':'채굴·인양 작업','함선 구매·제작·기함 교체 / 건조 자재 수집');
  if(p.type==='gate')add('warp','워프 항로 접속','성간 패널에서 목적지 선택 · 연료 18 · 18h');
  if(type.survey)add('survey',type.survey,'연료 5 · 조사 자료 120 CR · 구역당 3회',(s.survey[id]||0)>=3?'이 구역의 조사를 완료했습니다.':s.fuel<5?'연료 5가 필요합니다.':'');
  if(p.market){add('market',p.type==='planet'?'현지 시장 접속':'정거장 거래소','상품 매매 · 시세·화물 확인');add('fuel','연료 보급',`완충 비용 ${serviceQuote(s,'fuel')} CR`,s.fuel===100?'연료가 가득합니다.':s.credits<serviceQuote(s,'fuel')?'보급 비용이 부족합니다.':'');add('repair','선체 수리',`완전 수리 ${serviceQuote(s,'repair')} CR`,s.hull===100?'선체가 정상입니다.':s.credits<serviceQuote(s,'repair')?'수리 비용이 부족합니다.':'');}

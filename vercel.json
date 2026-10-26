@@ -4,27 +4,27 @@
   "functions": {
     "api/comms.js": {
       "maxDuration": 30,
-      "includeFiles": "{comms-levels,outcome-data,galaxy,galaxy-gen,engine,economy,usage,events,communications,world-data,factions,news,combat,equipment,missions,cargo,crew,crew-data}.js"
+      "includeFiles": "{ships-data,shipyard,comms-levels,outcome-data,galaxy,galaxy-gen,engine,economy,usage,events,communications,world-data,factions,news,combat,equipment,missions,cargo,crew,crew-data}.js"
     },
     "api/explore.js": {
       "maxDuration": 60,
-      "includeFiles": "{galaxy-gen,usage,crew-data}.js"
+      "includeFiles": "{ships-data,galaxy-gen,usage,crew-data}.js"
     },
     "api/images.js": {
       "maxDuration": 120,
-      "includeFiles": "{novelai-images,image-request,usage,crew-data}.js"
+      "includeFiles": "{ships-data,novelai-images,image-request,usage,crew-data}.js"
     },
     "api/archive.js": {
       "maxDuration": 60,
-      "includeFiles": "{comms-levels,outcome-data,archive-schema,galaxy,galaxy-gen,engine,economy,usage,events,communications,world-data,factions,news,combat,equipment,missions,cargo,crew,crew-data}.js"
+      "includeFiles": "{ships-data,shipyard,comms-levels,outcome-data,archive-schema,galaxy,galaxy-gen,engine,economy,usage,events,communications,world-data,factions,news,combat,equipment,missions,cargo,crew,crew-data}.js"
     },
     "api/crew-prompt.js": {
       "maxDuration": 60,
-      "includeFiles": "{usage,crew-data}.js"
+      "includeFiles": "{ships-data,usage,crew-data}.js"
     },
     "api/mission-brief.js": {
       "maxDuration": 30,
-      "includeFiles": "{comms-levels,outcome-data,galaxy,galaxy-gen,engine,economy,usage,events,communications,world-data,factions,news,combat,equipment,missions,cargo,crew,crew-data}.js"
+      "includeFiles": "{ships-data,shipyard,comms-levels,outcome-data,galaxy,galaxy-gen,engine,economy,usage,events,communications,world-data,factions,news,combat,equipment,missions,cargo,crew,crew-data}.js"
     }
   },
   "headers": [

@@ -1,3 +1,4 @@
+import {SHIPS} from './ships-data.js';
 import {officerLink} from './officer-links.js';
 import {allPlaces} from './world-data.js';
 import {knownCrew} from './crew.js';
@@ -16,7 +17,7 @@ soft teal instrument lighting, warm side lighting,
 subtle rim lighting on hair and shoulders, soft skin shading, glossy hair,
 detailed fabric folds, muted colors, dark atmospheric background, depth of field`;
 export const FEMALE_CREW_NEGATIVE='lowres, worst quality, bad quality, blurry, bad anatomy, bad hands, extra fingers, missing fingers, multiple people, duplicate, child, chibi, cropped head, out of frame, extreme close-up, exaggerated proportions, heavy makeup, plastic skin, 3d render, photorealistic, text, speech bubble, watermark, logo';
-export function imageTargets(s){return [FEMALE_CREW_TEST,{id:'ship:nomad',kind:'ship',name:'CSV 노마드',description:'백색 장갑, 청록색 엔진의 소형 독립 탐사선. 화물 40t. 실용적인 SF 함선.',original:'/assets/nomad.jpg'},...allPlaces(s).filter(p=>p.type==='planet').map(p=>({id:'planet:'+p.id,kind:'planet',name:p.name,description:p.desc,original:''})),...knownCrew(s).map(c=>({id:'person:'+c.id,kind:'person',name:c.name,crew:Object.fromEntries(['name','age','appearance','title','mbti','personality','bio','values','risk','goal'].filter(k=>c[k]!==undefined).map(k=>[k,c[k]])),description:[c.appearance||'외형 미지정',c.title,c.bio,'성인'].join('. '),original:''})),...FACTIONS.map(f=>({id:'person:faction-'+f.id,kind:'person',name:f.contact.name,description:JSON.stringify(f.contact),original:''}))];}
+export function imageTargets(s){return [FEMALE_CREW_TEST,...SHIPS.filter(d=>d.released&&(d.id==='nomad'||s.fleet?.owned.some(o=>o.design===d.id))).map(d=>({id:'ship:'+d.id,kind:'ship',name:'CSV '+d.name,description:d.desc+' 화물 '+d.cargo+'t. 실용적인 SF 함선.',original:d.id==='nomad'?'/assets/nomad.jpg':''})),...allPlaces(s).filter(p=>p.type==='planet').map(p=>({id:'planet:'+p.id,kind:'planet',name:p.name,description:p.desc,original:''})),...knownCrew(s).map(c=>({id:'person:'+c.id,kind:'person',name:c.name,crew:Object.fromEntries(['name','age','appearance','title','mbti','personality','bio','values','risk','goal'].filter(k=>c[k]!==undefined).map(k=>[k,c[k]])),description:[c.appearance||'외형 미지정',c.title,c.bio,'성인'].join('. '),original:''})),...FACTIONS.map(f=>({id:'person:faction-'+f.id,kind:'person',name:f.contact.name,description:JSON.stringify(f.contact),original:''}))];}
 export const NOVELAI_POSITIVE_BASE=`0.8::artist:yoya yogurt,
 0.4::artist:pinkmill,
 0.9::artist:freng,

@@ -1,3 +1,4 @@
+import {cargoCapacity} from './ships-data.js';
 import {removeCargo} from './economy.js';
 import {FACTIONS,faction,gainStanding} from './factions.js';
 import {place} from './world-data.js';
@@ -60,9 +61,9 @@ export function missionStatus(s,id,action){const m=missionRecord(s,id),offer=mis
   if(!m)reason='수락한 임무가 아닙니다.';
   else if(action==='abandon'){}
   else if(s.travel)reason='목적지 도착 후 진행하세요.';
-  else if(action==='pickup'){if(t.type!=='delivery'||m.cargo)reason='적재할 임무 화물이 없습니다.';else if(s.location!==t.from)reason=place(t.from,s).name+'에서 화물을 수령하세요.';else if(usedCargo(s)+t.quantity>40)reason=`화물 공간 ${t.quantity}t이 필요합니다.`;}
+  else if(action==='pickup'){if(t.type!=='delivery'||m.cargo)reason='적재할 임무 화물이 없습니다.';else if(s.location!==t.from)reason=place(t.from,s).name+'에서 화물을 수령하세요.';else if(usedCargo(s)+t.quantity>cargoCapacity(s))reason=`화물 공간 ${t.quantity}t이 필요합니다.`;}
   else if(action==='scan'){if(t.type!=='survey'||m.progress)reason='새로 스캔할 임무가 아닙니다.';else if(s.location!==t.to)reason=place(t.to,s).name+'에 도착해야 합니다.';else if(s.fuel<5)reason='정밀 스캔에는 연료 5가 필요합니다.';}
-  else if(action==='recover'){if(t.type!=='salvage'||m.progress)reason='회수할 잔해가 없습니다.';else if(s.location!==t.to)reason=place(t.to,s).name+'에 도착해야 합니다.';else if(s.fuel<3)reason='회수 작업에는 연료 3이 필요합니다.';else if(usedCargo(s)+t.quantity>40)reason='봉인 잔해를 적재할 화물 공간이 부족합니다.';}
+  else if(action==='recover'){if(t.type!=='salvage'||m.progress)reason='회수할 잔해가 없습니다.';else if(s.location!==t.to)reason=place(t.to,s).name+'에 도착해야 합니다.';else if(s.fuel<3)reason='회수 작업에는 연료 3이 필요합니다.';else if(usedCargo(s)+t.quantity>cargoCapacity(s))reason='봉인 잔해를 적재할 화물 공간이 부족합니다.';}
   else if(action==='assist'){if(t.type!=='relief'||m.progress)reason='지원할 구호 임무가 없습니다.';else if(s.location!==t.to)reason=place(t.to,s).name+'에 도착해야 합니다.';else if(s.fuel<2||s.cargo.food<2)reason='구호에는 연료 2와 식량 2t이 필요합니다.';}
   else if(action==='track'){if(t.type!=='bounty'||m.progress)reason='추적할 표적이 없습니다.';else if(s.location!==t.to)reason=place(t.to,s).name+'에서 표적을 추적하세요.';else if(s.fuel<3)reason='표적 추적에는 연료 3이 필요합니다.';}
   else if(action==='complete'){if(t.type==='delivery'){if(!m.cargo)reason='발주처에서 임무 화물을 먼저 수령하세요.';else if(s.location!==t.to)reason=place(t.to,s).name+'에 화물을 전달하세요.';}else if(!m.progress)reason=t.type==='survey'?'임무용 정밀 스캔을 먼저 완료하세요.':t.type==='salvage'?'봉인 잔해를 먼저 회수하세요.':t.type==='relief'?'현장 구호를 먼저 완료하세요.':'지정 표적을 먼저 격퇴하세요.';else if(s.location!==t.from)reason=place(t.from,s).name+'에서 담당자에게 보고하세요.';}

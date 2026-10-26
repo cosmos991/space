@@ -1,3 +1,4 @@
+import {cargoCapacity} from './ships-data.js';
 import {place} from './world-data.js';
 import {portsFor,portFor} from './economy.js';
 import {migrateCrew,crewMessage} from './crew.js';
@@ -60,9 +61,9 @@ export function eventChoices(s){
  if(id==='rescue')return [choice('help','지원 물자 전달','식량 2t 소비 · 보상 260 CR',s.cargo.food<2?'식량 2t이 필요합니다.':''),choice('relay','구조대에 좌표 중계','보상 60 CR · 소모 없음'),choice('ignore','현재 임무에 집중','변화 없이 이탈')];
  if(id==='debris')return [choice('detour','잔해를 피해 우회','항해 시간 +2h'),choice('push','실드로 밀고 통과','실드 −20 · 선체 손상 25% 확률(−6)'),choice('ignore','안전 항로 재계산','항해 시간 +3h · 자원 손실 없음')];
  if(id==='ion')return [choice('detour','폭풍을 우회','연료 −4 · 항해 시간 +2h',s.fuel<4?'연료 4가 필요합니다.':''),choice('push','실드에 동력을 집중해 돌파','실드 −30 · 선체 손상 45% 확률(−10)'),choice('ignore','폭풍이 약해질 때까지 대기','항해 시간 +4h · 자원 손실 없음')];
- if(id==='trader')return [choice('buy','광물 4t 구매','100 CR 지불 · 평균 원가에 반영',s.credits<100?'100 CR이 필요합니다.':used(s)+4>40?'화물 공간 4t이 필요합니다.':''),choice('ignore','제안 거절','거래 없이 항해 계속')];
+ if(id==='trader')return [choice('buy','광물 4t 구매','100 CR 지불 · 평균 원가에 반영',s.credits<100?'100 CR이 필요합니다.':used(s)+4>cargoCapacity(s)?'화물 공간 4t이 필요합니다.':''),choice('ignore','제안 거절','거래 없이 항해 계속')];
  if(id==='patrol')return [choice('papers','허가증과 명세 제출','항해 시간 +1h · 벌금 없음'),choice('data','탐사 자료도 함께 제공','이미 탐사한 구역이 있으면 보상 100 CR',!Object.values(s.survey).some(n=>n>0)?'탐사 기록이 필요합니다.':''),choice('ignore','기본 신원 확인만 진행','항해 시간 +2h')];
- if(id==='cache')return [choice('recover','컨테이너 회수','연료 −2 · 기술 부품 +2t',s.fuel<2?'연료 2가 필요합니다.':used(s)+2>40?'화물 공간 2t이 필요합니다.':''),choice('scan','외부 스캔 자료 판매','보상 90 CR · 화물 공간 불필요'),choice('ignore','발견 좌표만 남기기','자원 변화 없음')];
+ if(id==='cache')return [choice('recover','컨테이너 회수','연료 −2 · 기술 부품 +2t',s.fuel<2?'연료 2가 필요합니다.':used(s)+2>cargoCapacity(s)?'화물 공간 2t이 필요합니다.':''),choice('scan','외부 스캔 자료 판매','보상 90 CR · 화물 공간 불필요'),choice('ignore','발견 좌표만 남기기','자원 변화 없음')];
  if(id==='relic')return [choice('analyze','신호 정밀 분석','연료 −3 · 70% 확률 420 CR / 실패 시 선체 −8',s.fuel<3?'연료 3이 필요합니다.':''),choice('scan','안전 거리에서 관측','보상 110 CR · 손상 없음'),choice('ignore','신호에서 이탈','자원 변화 없음')];
  return [];
 }
