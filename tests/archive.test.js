@@ -4,10 +4,18 @@ import {createHash} from 'node:crypto';
 import handler from '../api/archive.js';
 import {validArchive} from '../archive-schema.js';
 import {freshState} from '../engine.js';
-import {saveArchive,readArchive,cloudHTML} from '../archive-client.js';
+import {saveArchive,readArchive,prepareArchiveRestore,cloudHTML} from '../archive-client.js';
 const id='aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa';
 const png=Buffer.from([137,80,78,71,13,10,26,10,1,2,3]),image='data:image/png;base64,'+png.toString('base64'),object=createHash('sha256').update(png).digest('hex')+'.png';
 const fixture=()=>({version:1,state:freshState(99),images:[{key:'99:person:harin',active:id,versions:[{id,prompt:'portrait',model:'novelai/nai-diffusion-4-5-full',time:12,provider:'novelai',seed:0,negativePrompt:'text',object}]}],settings:{drafts:{'novelai:person:harin':'portrait'},negative:{},seeds:{},provider:'novelai',positiveBase:'art style'}});
+test('restore explicitly offers both backup choices and never invokes a cloud backup when skipped',async t=>{
+ const a=fixture(),calls=[];let backups=0,broken=false;t.mock.method(globalThis,'fetch',async(url,options)=>{calls.push({url,method:options.method});if(url.includes('action=get'))return Response.json({archive:broken?{...a,state:{}}:a});if(url.includes('action=image'))return Response.json({image});throw Error('unexpected cloud mutation');});
+ const options={backupCurrent:false,backup:async()=>{backups++;}};
+ const loaded=await prepareArchiveRestore('code',id,options);assert.equal(backups,0);assert.equal(loaded.records[0].versions[0].data,image);assert.ok(calls.every(c=>c.method==='GET'));
+ await prepareArchiveRestore('code',id,{...options,backupCurrent:true});assert.equal(backups,1);
+ broken=true;await assert.rejects(prepareArchiveRestore('code',id,{...options,backupCurrent:true}));assert.equal(backups,1);await assert.rejects(prepareArchiveRestore('code',id,{...options,backupCurrent:undefined}));
+ const html=cloudHTML({configured:true,archives:[{id,summary:'save',created_at:new Date().toISOString()}],review:id});assert.match(html,/data-cloud-backup="no"/);assert.match(html,/data-cloud-backup="yes"/);assert.match(html,/백업 없이 불러오기/);
+});
 const response=()=>({setHeader(){},end(text){this.data=JSON.parse(text);}});
 const request=(url,body)=>({method:body?'POST':'GET',url:'/api/archive?action='+url,headers:{'x-game-access-code':'game-code'},...(body?{body}:{})});
 function configure(t){const keys=['SUPABASE_URL','SUPABASE_SERVICE_ROLE_KEY','GAME_ACCESS_CODE'],old=Object.fromEntries(keys.map(k=>[k,process.env[k]]));Object.assign(process.env,{SUPABASE_URL:'https://test-project.supabase.co',SUPABASE_SERVICE_ROLE_KEY:'db-secret',GAME_ACCESS_CODE:'game-code'});t.after(()=>{for(const k of keys)if(old[k]===undefined)delete process.env[k];else process.env[k]=old[k];});}

@@ -12,7 +12,7 @@ import {chartListHTML,chartDetailHTML,CHART_FILTERS,chartPoints} from './chart-u
 import {createBundle,decodeBundle,readBundle,writeBundle} from './save-bundle.js';
 import {decodeSave,readProgress,writeProgress,slotKey} from './save-store.js';
 const PERSONAL_PANELS=['data','ship','crew','assets','equipment'];
-import {archiveRequest,saveArchive,readArchive,cloudHTML} from './archive-client.js';
+import {archiveRequest,saveArchive,prepareArchiveRestore,cloudHTML} from './archive-client.js';
 import {loadImages,exportWorldImages,replaceWorldImages,getPositiveBase,setPositiveBase,imageTargets,imagePrompt,imageSlot,imagesHTML,imageSource,addImage,selectImage,removeImage} from './image-assets.js';
 import {galaxyHTML,generationHTML} from './galaxy-ui.js';
 import {currentSystem,beginExploration,completeExploration,failExploration,jumpSystem,updateRules} from './galaxy.js';
@@ -262,6 +262,7 @@ document.addEventListener('click',async e=>{
  if(b.hasAttribute('data-cloud-status')){await cloudStatus();return;}
  if(b.hasAttribute('data-cloud-cancel')){cloud.review='';renderCloud();return;}
  if(b.dataset.cloudReview){cloud.review=b.dataset.cloudReview;renderCloud();return;}
+ if(b.dataset.cloudRestore&&!['yes','no'].includes(b.dataset.cloudBackup)){toast('백업 여부를 선택한 뒤 불러오세요.',true);return;}
  if(b.hasAttribute('data-cloud-save')||b.dataset.cloudRestore){if(imagePending||generating||busy){toast('이미지 생성·탐색·통신이 끝난 뒤 저장·복원하세요.',true);return;}}
  cloud.busy=true;cloud.error='';setSpeed(0);renderCloud();
  try{
@@ -271,8 +272,7 @@ document.addEventListener('click',async e=>{
   if(b.dataset.cloudImage){const result=await archiveRequest(accessCode,'image&object='+encodeURIComponent(b.dataset.cloudImage));if(typeof result.image!=='string'||!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(result.image))throw Error('이미지 응답이 유효하지 않습니다.');cloud.previewImage={object:b.dataset.cloudImage,src:result.image};}
   if(b.hasAttribute('data-cloud-save')){await currentArchive();toast('게임·이미지·프롬프트를 클라우드에 보관했습니다.');}
   if(b.dataset.cloudRestore){
-   cloudProgress('선택한 저장본 검증 중…');const loaded=await readArchive(accessCode,b.dataset.cloudRestore,cloudProgress);
-   cloudProgress('현재 기록을 먼저 백업합니다…');await currentArchive();
+   cloudProgress('선택한 저장본 검증 중…');await imagesReady;await fullSaveQueue.catch(()=>{});const loaded=await prepareArchiveRestore(accessCode,b.dataset.cloudRestore,{backupCurrent:b.dataset.cloudBackup==='yes',backup:currentArchive,onProgress:cloudProgress});await fullSaveQueue.catch(()=>{});
    const next=migrateState(loaded.state),previousJSON=localStorage.getItem(KEY),priorImages=exportWorldImages(next);
    try{await replaceWorldImages(next,loaded.records);localStorage.setItem(KEY,JSON.stringify(next));}
    catch(error){await replaceWorldImages(next,priorImages);if(previousJSON!==null)localStorage.setItem(KEY,previousJSON);throw error;}
