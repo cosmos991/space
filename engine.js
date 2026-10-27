@@ -1,3 +1,4 @@
+import {executeUpgrade} from './upgrades.js';
 import {migrateFabrication,validFabrication,executeCraft} from './crafting.js';
 import {grantMaterials,missionMaterials,materialRewardText} from './materials.js';
 import {migrateFleet,validFleet,manageYard} from './shipyard.js';
@@ -70,3 +71,5 @@ export function crewOrder(s,id,action,assignment){migrateState(s);const result=e
 export function shipyardOrder(s,action,id){migrateState(s);const result=manageYard(s,action,id);log(s,result.message,'trade');if(result.hours)tick(s,result.hours);return result.message;}
 
 export function craftingOrder(s,order){migrateState(s);const text=executeCraft(s,order);log(s,text,'trade');return text;}
+
+export function upgradeOrder(s,order){migrateState(s);const result=executeUpgrade(s,order);log(s,result,'trade');return result;}

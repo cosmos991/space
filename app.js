@@ -1,3 +1,6 @@
+import {upgradesHTML} from './upgrades-ui.js';
+import {upgradeStatus} from './upgrades.js';
+import {upgradeOrder} from './engine.js';
 import {craftingHTML} from './crafting-ui.js';
 import {recipe,RECIPES} from './crafting.js';
 import {craftingOrder} from './engine.js';
@@ -58,6 +61,7 @@ let imageTarget='person:test-navigator',imagePending=false,imageError='',imageQu
 try{const preferred=sessionStorage.getItem('asterion-image-provider');if(['openai','novelai'].includes(preferred))imageProvider=preferred;}catch{}
 let dataSection='home',dataContact='';
 let materialSelection='',materialFilter='all';
+let upgradeBranch='hull',upgradeReview=null;
 let craftCategory='parts',craftSelected='part:frame',craftCount=1,craftSource='',craftReview=null;
 let imagesReady=Promise.resolve(),imagesLoaded=false;
 let cloud={configured:false,checked:false,busy:false,progress:'',error:'',archives:[],review:'',details:null,usage:null,deleteReview:''};
@@ -124,6 +128,7 @@ function renderDetail(){cancelCombatEffects();syncPanelNavigation();if(!workspac
  if(tab==='galaxy')html+=galaxyHTML(state,{generating,accessCode});
  if(tab==='data'&&dataSection==='portraits')html+=officerLinksHTML(FACTIONS);
  if(tab==='data'&&dataSection==='events')html+=eventSettingsHTML(state);
+ if(tab==='data'&&dataSection==='upgrades')html+=upgradesHTML(state,{branch:upgradeBranch,review:upgradeReview});
  if(tab==='data'&&dataSection==='crafting')html+=craftingHTML(state,{category:craftCategory,selected:craftSelected,count:craftCount,source:craftSource,review:craftReview});
  if(tab==='data'&&dataSection==='materials')html+=materialsHTML(state,{selected:materialSelection,filter:materialFilter});
  if(tab==='data'&&dataSection==='saves')html+=progressHTML();
@@ -350,3 +355,10 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-craft-cate
  renderDetail();if(b.dataset.craftRecipe)document.querySelector('.craft-detail')?.scrollIntoView({block:'nearest'});
 });
 document.addEventListener('change',e=>{if(e.target.id!=='craft-count'&&e.target.id!=='craft-source')return;craftReview=null;if(e.target.id==='craft-count')craftCount=Number(e.target.value);else craftSource=e.target.value;renderDetail();document.querySelector(e.target.id==='craft-count'?'#craft-count':'#craft-source')?.focus({preventScroll:true});});
+
+document.addEventListener('click',e=>{const b=e.target.closest('[data-upgrade-branch],[data-upgrade-review],[data-upgrade-confirm],[data-upgrade-cancel]');if(!b)return;if(busy||cloud.busy||imagePending||generating||combatAnimating){toast('진행 중인 작업이 끝난 뒤 개조 도크를 이용하세요.',true);return;}
+ if(b.hasAttribute('data-upgrade-confirm')){if(!upgradeReview)return;const order={...upgradeReview};act(()=>{toast(upgradeOrder(state,order));upgradeReview=null;});return;}
+ upgradeReview=null;if(b.dataset.upgradeBranch)upgradeBranch=b.dataset.upgradeBranch;
+ if(b.dataset.upgradeReview){upgradeBranch=b.dataset.upgradeReview;const st=upgradeStatus(state,upgradeBranch);if(!st.eligible){toast(st.reason,true);return;}upgradeReview={branch:upgradeBranch,design:st.quote.design,level:st.quote.next};}
+ renderDetail();
+});
