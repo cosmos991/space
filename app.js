@@ -64,6 +64,8 @@ let dataSection='home',dataContact='';
 let menuGroup='explore';
 let materialSelection='',materialFilter='all';
 let upgradeBranch='hull',upgradeReview=null;
+let craftMobileView='list',craftListScroll=0,craftHistory=[];
+const missionFoldState=new Map();
 let craftCategory='parts',craftSelected='part:frame',craftCount=1,craftSource='',craftReview=null;
 let imagesReady=Promise.resolve(),imagesLoaded=false;
 let cloud={configured:false,checked:false,busy:false,progress:'',error:'',archives:[],review:'',details:null,usage:null,deleteReview:''};
@@ -132,7 +134,7 @@ function renderDetail(){cancelCombatEffects();syncPanelNavigation();if(!workspac
  if(tab==='data'&&dataSection==='portraits')html+=officerLinksHTML(FACTIONS);
  if(tab==='data'&&dataSection==='events')html+=eventSettingsHTML(state);
  if(tab==='data'&&dataSection==='upgrades')html+=upgradesHTML(state,{branch:upgradeBranch,review:upgradeReview});
- if(tab==='data'&&dataSection==='crafting')html+=craftingHTML(state,{category:craftCategory,selected:craftSelected,count:craftCount,source:craftSource,review:craftReview});
+ if(tab==='data'&&dataSection==='crafting')html+=craftingHTML(state,{category:craftCategory,selected:craftSelected,count:craftCount,source:craftSource,review:craftReview,mobileView:craftMobileView});
  if(tab==='data'&&dataSection==='materials')html+=materialsHTML(state,{selected:materialSelection,filter:materialFilter});
  if(tab==='data'&&dataSection==='saves')html+=progressHTML();
  if(tab==='data'&&dataSection==='cloud')html+=cloudHTML({...cloud,code:accessCode});
@@ -156,7 +158,7 @@ function renderDetail(){cancelCombatEffects();syncPanelNavigation();if(!workspac
  if(tab==='data'&&dataSection==='log'&&state.combat)html+='<button data-tab="combat" class="quiet">최근 교전 보고 확인 →</button>';
  if(tab==='data'&&dataSection==='log')html+=`<div class="section-kicker">CAPTAIN'S LOG</div><h2 class="subhead">항해 기록</h2><div class="log-list">${state.logs.map(l=>`<div class="feed-item ${esc(l.kind)}"><time>${time(l.time)}</time><span>${esc(l.text)}</span></div>`).join('')}</div>`;
  if(PERSONAL_PANELS.includes(tab))html=html.slice(0,dataStart)+dataPanelHTML(state,tab==='data'?dataSection:tab,html.slice(dataStart),tab==='equipment'&&gearView==='shop'?{group:'industry',current:'equipment-shop'}:{});
- const priorFeed=$('#crew-feed')||$('#radio-feed'),sameFeed=priorFeed?.dataset.conversation===conversationKey(),priorScroll=sameFeed?{top:priorFeed.scrollTop,bottom:priorFeed.scrollHeight-priorFeed.scrollTop-priorFeed.clientHeight<65}:null;$('#detail').innerHTML=html;animateDetail();document.querySelectorAll('[data-portrait-id]').forEach(el=>{const id='person:'+el.dataset.portraitId,src=imageSource(state,id);if(src){el.innerHTML='<img alt="인물 초상화">';el.querySelector('img').src=src;}el.dataset.imageTarget=id;el.setAttribute('role','button');el.tabIndex=0;el.setAttribute('aria-label','초상화 이미지 생성·관리');});if(crewConversationOpen(tab==='data'?dataContact:selectedCrew)){const feed=$('#crew-feed');if(feed){feed.scrollTop=priorScroll&&!priorScroll.bottom?priorScroll.top:feed.scrollHeight;readCrew(state,tab==='data'?dataContact:selectedCrew);}}if(tab==='ship')renderShip();if(tab==='comms'){const list=$('#radio-feed');list.scrollTop=priorScroll&&!priorScroll.bottom?priorScroll.top:list.scrollHeight;markRead(state);renderedSequence=state.comms.sequence;$('#radio-channel-list').innerHTML=channelListHTML(state);}
+ const priorFeed=$('#crew-feed')||$('#radio-feed'),sameFeed=priorFeed?.dataset.conversation===conversationKey(),priorScroll=sameFeed?{top:priorFeed.scrollTop,bottom:priorFeed.scrollHeight-priorFeed.scrollTop-priorFeed.clientHeight<65}:null;$('#detail').innerHTML=html;$('#detail').querySelectorAll('[data-mission-fold]').forEach(el=>{el.open=missionFoldState.get(el.dataset.missionFold)??!matchMedia('(max-width:700px)').matches;});animateDetail();document.querySelectorAll('[data-portrait-id]').forEach(el=>{const id='person:'+el.dataset.portraitId,src=imageSource(state,id);if(src){el.innerHTML='<img alt="인물 초상화">';el.querySelector('img').src=src;}el.dataset.imageTarget=id;el.setAttribute('role','button');el.tabIndex=0;el.setAttribute('aria-label','초상화 이미지 생성·관리');});if(crewConversationOpen(tab==='data'?dataContact:selectedCrew)){const feed=$('#crew-feed');if(feed){feed.scrollTop=priorScroll&&!priorScroll.bottom?priorScroll.top:feed.scrollHeight;readCrew(state,tab==='data'?dataContact:selectedCrew);}}if(tab==='ship')renderShip();if(tab==='comms'){const list=$('#radio-feed');list.scrollTop=priorScroll&&!priorScroll.bottom?priorScroll.top:list.scrollHeight;markRead(state);renderedSequence=state.comms.sequence;$('#radio-channel-list').innerHTML=channelListHTML(state);}
  bindPersonalComms();
 }
 function renderShip(){if(!$('#ship'))return;$('#ship').innerHTML=`<div class="ship-grid"><div class="ship-silhouette"><svg viewBox="0 0 120 80" aria-label="노마드 탐사선"><path d="M60 4L72 28L78 31L86 21L90 57L78 64L68 60L66 74H54L52 60L42 64L30 57L34 21L42 31L48 28Z" fill="#15333e" stroke="#698e9f"/><path d="M60 14L66 36L60 43L54 36Z" fill="#68d5c0"/><path d="M44 38V53M76 38V53M57 53V67M63 53V67" stroke="#416c7b"/></svg></div><div><small>선체 내구도</small><strong>${state.hull}% <span class="muted">/ 정상</span></strong><div class="meter"><i style="width:${state.hull}%"></i></div><small>동력 장치</small><strong>온라인</strong></div><div><small>실드 출력</small><strong>${state.shield} / ${shipStats(state).maxShield} <span class="muted">/ 정상</span></strong><div class="meter"><i style="width:${state.shield/shipStats(state).maxShield*100}%;background:#769ee1"></i></div><small>승무원</small><strong>${state.crew.roster.length} / ${crewCapacity(state)}명 <span class="muted">/ 함장 별도</span></strong></div></div>`;}
@@ -347,15 +349,16 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-yard-revie
 // Inventory browsing changes only the interface, never the saved item quantities.
 document.addEventListener('click',e=>{const b=e.target.closest('[data-material-select],[data-material-filter]');if(!b)return;if(b.dataset.materialSelect)materialSelection=b.dataset.materialSelect;else materialFilter=b.dataset.materialFilter;renderDetail();const selector=b.dataset.materialSelect?'[data-material-select="'+b.dataset.materialSelect+'"]':'[data-material-filter="'+materialFilter+'"]';document.querySelector(selector)?.focus({preventScroll:true});});
 
-document.addEventListener('click',e=>{const b=e.target.closest('[data-craft-category],[data-craft-recipe],[data-craft-review],[data-craft-confirm],[data-craft-cancel],[data-craft-track]');if(!b||cloud.busy)return;
+document.addEventListener('click',e=>{const b=e.target.closest('[data-craft-back],[data-craft-category],[data-craft-recipe],[data-craft-review],[data-craft-confirm],[data-craft-cancel],[data-craft-track]');if(!b||cloud.busy)return;
+ if(b.hasAttribute('data-craft-back')){craftReview=null;const prev=craftHistory.pop();if(prev){craftCategory=prev.category;craftSelected=prev.selected;craftCount=prev.count;craftSource=prev.source;craftMobileView='detail';renderDetail();$('#detail').scrollTop=prev.scroll;}else{craftMobileView='list';renderDetail();$('#detail').scrollTop=craftListScroll;}return;}
  if(b.hasAttribute('data-craft-confirm')){if(!craftReview)return;const order={...craftReview};act(()=>{const message=craftingOrder(state,order);craftReview=null;craftSource='';toast(message);});return;}
  if(b.hasAttribute('data-craft-cancel')){craftReview=null;renderDetail();return;}
  craftReview=null;
- if(b.dataset.craftCategory){craftCategory=b.dataset.craftCategory;craftSelected=RECIPES.find(r=>r.category===craftCategory)?.id||'';craftSource='';craftCount=1;}
- if(b.dataset.craftRecipe){dataSection='crafting';const r=recipe(b.dataset.craftRecipe);if(!r)return;craftSelected=r.id;if(!b.hasAttribute('data-craft-salvage-list'))craftCategory=r.category;craftSource='';craftCount=1;}
+ if(b.dataset.craftCategory){craftMobileView='list';craftHistory=[];craftListScroll=0;craftCategory=b.dataset.craftCategory;craftSelected=RECIPES.find(r=>r.category===craftCategory)?.id||'';craftSource='';craftCount=1;}
+ if(b.dataset.craftRecipe){if(matchMedia('(max-width:700px)').matches){if(dataSection==='crafting'&&craftMobileView==='detail'&&!b.closest('.craft-recipes'))craftHistory.push({category:craftCategory,selected:craftSelected,count:craftCount,source:craftSource,scroll:$('#detail').scrollTop});else{craftHistory=[];craftListScroll=dataSection==='crafting'?$('#detail').scrollTop:0;}}craftMobileView='detail';dataSection='crafting';const r=recipe(b.dataset.craftRecipe);if(!r)return;craftSelected=r.id;if(!b.hasAttribute('data-craft-salvage-list'))craftCategory=r.category;craftSource='';craftCount=1;}
  if(b.dataset.craftTrack){act(()=>toast(craftingOrder(state,{action:'track',id:b.dataset.craftTrack==='clear'?null:b.dataset.craftTrack})));return;}
  if(b.dataset.craftReview)craftReview={action:b.dataset.craftReview,id:b.dataset.craftId,count:recipe(b.dataset.craftId)?.gear?1:craftCount,source:craftSource};
- renderDetail();if(b.dataset.craftRecipe)document.querySelector('.craft-detail')?.scrollIntoView({block:'nearest'});
+ renderDetail();if(b.dataset.craftRecipe){if(matchMedia('(max-width:700px)').matches){$('#detail').scrollTop=0;document.querySelector('[data-craft-back]')?.focus({preventScroll:true});}else document.querySelector('.craft-detail')?.scrollIntoView({block:'nearest'});}
 });
 document.addEventListener('change',e=>{if(e.target.id!=='craft-count'&&e.target.id!=='craft-source')return;craftReview=null;if(e.target.id==='craft-count')craftCount=Number(e.target.value);else craftSource=e.target.value;renderDetail();document.querySelector(e.target.id==='craft-count'?'#craft-count':'#craft-source')?.focus({preventScroll:true});});
 
@@ -365,3 +368,5 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-upgrade-br
  if(b.dataset.upgradeReview){upgradeBranch=b.dataset.upgradeReview;const st=upgradeStatus(state,upgradeBranch);if(!st.eligible){toast(st.reason,true);return;}upgradeReview={branch:upgradeBranch,design:st.quote.design,level:st.quote.next};}
  renderDetail();
 });
+
+document.addEventListener('toggle',e=>{if(e.target.isConnected&&e.target.matches?.('[data-mission-fold]'))missionFoldState.set(e.target.dataset.missionFold,e.target.open);},true);
