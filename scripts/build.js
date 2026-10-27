@@ -16,3 +16,6 @@ await copyFile('assets/raider-wireframe.jpg','dist/assets/raider-wireframe.jpg')
 
 await mkdir('dist/assets/materials',{recursive:true});
 for(const id of ['ore','tech','scrap','alloy','core','special','frame','mechanism','circuit','coil','armor','stable','laser'])await copyFile('assets/materials/'+id+'-v1.webp','dist/assets/materials/'+id+'-v1.webp');
+
+await mkdir('dist/assets/mining',{recursive:true});
+for(const id of ['basic','reinforced','precision'])await copyFile('assets/mining/'+id+'-v1.webp','dist/assets/mining/'+id+'-v1.webp');

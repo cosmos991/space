@@ -180,3 +180,48 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 @keyframes mining-hover{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,-5px)}}@keyframes mining-pulse{0%,100%{transform:scaleX(.7);opacity:.5}50%{transform:scaleX(1.4);opacity:1}}@keyframes mining-drill{0%,100%{transform:translateX(-.7px)}50%{transform:translateX(.7px)}}@keyframes mining-scatter{from{transform:scale(.5);opacity:1}to{transform:scale(2.6) translateY(-7px);opacity:0}}
 @media(max-width:900px){.rig-grid{grid-template-columns:1fr}.rig-card-title svg{width:54px}.rig-parts{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:700px){.mining-stage{height:190px}.mining-rig{top:8px;width:100px}.mining-beam{top:95px}.mining-sparks{top:125px}.vein-grid{gap:7px}.vein-card{padding:10px;gap:7px}.vein-card strong{font-size:12px}.vein-card small{font-size:11px}.mining-deploy{position:static}.mining-live-stats{display:grid}.rig-parts{grid-template-columns:1fr}.mining-console h2{font-size:20px}.mining-console .goal-title{flex-wrap:wrap}.mining-operation{padding:11px}}
 @media(prefers-reduced-motion:reduce){.mining-console *{animation:none!important;transition:none!important}}
+
+/* Generated transparent mining rigs; all continuous effects pause in place. */
+.mining-console{--vein-light:#9db9db;--rig-light:#f5b06b;--work-time:1s}
+.mining-console[data-rig=reinforced]{--rig-light:#66e4e0;--work-time:1.3s}
+.mining-console[data-rig=precision]{--rig-light:#c799ff;--work-time:.8s}
+.mining-console[data-vein="1"]{--vein-light:#6acef7}.mining-console[data-vein="2"]{--vein-light:#f2ce78}.mining-console[data-vein="3"]{--vein-light:#c19bfa}
+.mining-stage{height:300px;isolation:isolate;background:radial-gradient(ellipse at 50% 90%,#254054 0, #111e2e 40%,#080e19 80%)}
+.mining-stage:after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;box-shadow:inset 0 0 55px #040913}
+.mining-rig{top:12px;width:210px;z-index:3;animation:mining-rig-float 2.8s ease-in-out infinite;animation-play-state:paused;filter:drop-shadow(0 7px 12px #0009)}
+.rig-artwork{display:block;width:100%;height:auto;object-fit:contain;user-select:none;pointer-events:none}
+.mining-rig-body{transform-origin:50% 75%;animation:mining-machine-work .16s linear infinite;animation-play-state:paused}
+.mining-thrust{position:absolute;left:12%;right:12%;top:48%;height:44px;z-index:-1;background:radial-gradient(ellipse at 0 0,#66daee80,transparent 65%),radial-gradient(ellipse at 100% 0,#66daee80,transparent 65%);filter:blur(6px);opacity:0;animation:mining-thrust-pulse .8s ease-in-out infinite;animation-play-state:paused}
+.mining-beam{z-index:2;top:200px;height:29px;width:4px;left:calc(50% - 2px);background:linear-gradient(var(--rig-light),var(--vein-light));box-shadow:0 0 12px var(--rig-light);opacity:0;animation:mining-tool-pulse .6s ease-in-out infinite;animation-play-state:paused}
+.mining-rock{height:96px;width:240px;bottom:-10px;background:linear-gradient(145deg,#6e6e7e,#354357 40%,#17212f);filter:none!important;box-shadow:inset 0 0 22px #131e32}
+.mining-rock i{background:var(--vein-light)!important;box-shadow:0 0 10px var(--vein-light);left:55px;top:38px;animation:mining-vein-glow 2s ease-in-out infinite;animation-play-state:paused;opacity:.35}.mining-rock i:nth-child(2){left:116px;top:30px;transform:rotate(25deg)}.mining-rock i:nth-child(3){left:165px;top:60px}
+.mining-contact{position:absolute;left:50%;top:224px;width:75px;height:18px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(ellipse,var(--vein-light),transparent 70%);filter:blur(4px);opacity:0;animation:mining-contact-glow var(--work-time) ease-in-out infinite;animation-play-state:paused;z-index:2}
+.mining-sparks{left:50%;top:226px;z-index:4;opacity:0;animation:none!important}
+.mining-sparks i{width:3px;height:3px;left:0!important;top:0!important;background:var(--vein-light);box-shadow:0 0 5px var(--vein-light);animation:mining-chip-flight 1s linear infinite;animation-delay:calc(var(--particle)*-.14s);animation-play-state:paused;--fly-x:calc((var(--particle) - 3.5)*18px);--fly-y:calc(-25px - var(--particle)*4px)}
+.mining-dust{position:absolute;left:50%;top:225px;z-index:2;opacity:0}.mining-dust i{position:absolute;width:38px;height:13px;border-radius:50%;background:#8ba6c12e;filter:blur(5px);animation:mining-dust-drift 2s ease-out infinite;animation-play-state:paused}.mining-dust i:nth-child(2){animation-delay:-.6s;--dust-x:-60px}.mining-dust i:nth-child(3){animation-delay:-1.4s;--dust-x:60px}
+.mining-scanner{position:absolute;left:calc(50% - 105px);top:115px;width:210px;height:1px;background:var(--rig-light);box-shadow:0 0 8px var(--rig-light);opacity:0;animation:mining-scan-sweep 3s ease-in-out infinite;animation-play-state:paused;z-index:4}
+.mining-rig-caption{position:absolute;bottom:12px;right:12px;font-size:11px;color:#b9d2e0;z-index:5;background:#0a1625cc;border:1px solid #3c5569;padding:5px 8px;border-radius:5px}.mining-stage-label{z-index:5}
+.mining-running .mining-rig{animation:mining-rig-float 2.8s ease-in-out infinite}
+.mining-running .mining-beam{animation:mining-tool-pulse .6s ease-in-out infinite;opacity:.85}
+.mining-running .mining-sparks,.mining-running .mining-dust{opacity:1}
+.mining-running .mining-thrust{opacity:.8}.mining-running .mining-contact{opacity:.8}.mining-running[data-rig=precision] .mining-scanner{opacity:.6}
+.mining-running .mining-stage *{animation-play-state:running}
+.mining-console:not(.mining-running) .mining-stage *{animation-play-state:paused}
+.mining-console:not(.mining-running) .mining-contact,.mining-console:not(.mining-running) .mining-thrust{opacity:0}
+.mining-damaged .mining-stage{border-color:#c78b55}.mining-damaged .mining-stage-label{color:#ffd09a}.mining-damaged .mining-rig-body{animation-duration:.09s}
+.mining-depleted .mining-rock{filter:grayscale(1)!important;opacity:.5}
+.mining-cycle-report{padding:9px 11px;border-left:2px solid var(--rig-light);background:#223a4c80;color:#d3e9f7;font-size:12px;line-height:1.6;animation:mining-cargo-receipt .65s ease-out both}
+.rig-card-title{display:block}.rig-card-title .rig-artwork{width:150px;height:150px;margin:0 auto 10px;filter:drop-shadow(0 4px 12px #0008)}.rig-card-title>div{text-align:center}.rig-card{transition:border-color .18s ease,background .18s ease}.rig-card.selected{background:radial-gradient(ellipse at 50% 0,#243e50,#111e2b 65%)}
+@keyframes mining-rig-float{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,-3px)}}
+@keyframes mining-machine-work{0%,100%{transform:translate(0,0) rotate(-.18deg)}50%{transform:translate(.35px,.8px) rotate(.18deg)}}
+@keyframes mining-tool-pulse{0%,100%{transform:scaleX(.7);opacity:.55}50%{transform:scaleX(1.3);opacity:.9}}
+@keyframes mining-thrust-pulse{0%,100%{transform:scaleY(.8)}50%{transform:scaleY(1.15)}}
+@keyframes mining-vein-glow{0%,100%{opacity:.4}50%{opacity:.9}}
+@keyframes mining-contact-glow{0%,100%{transform:translateX(-50%) scale(.8);opacity:.4}50%{transform:translateX(-50%) scale(1.2);opacity:.85}}
+@keyframes mining-chip-flight{0%{transform:translate(0,0) scale(1);opacity:0}15%{opacity:.9}100%{transform:translate(var(--fly-x),var(--fly-y)) scale(.2);opacity:0}}
+@keyframes mining-dust-drift{from{transform:translate(-19px,-3px) scale(.6);opacity:0}25%{opacity:.7}to{transform:translate(var(--dust-x,30px),-35px) scale(2);opacity:0}}
+@keyframes mining-scan-sweep{0%,100%{transform:translateY(-60px);opacity:0}20%,75%{opacity:.6}85%{transform:translateY(75px);opacity:0}}
+@keyframes mining-cargo-receipt{from{opacity:.3;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:900px){.rig-card-title{display:flex}.rig-card-title .rig-artwork{width:112px;height:112px;margin:0 12px 0 0}.rig-card-title>div{text-align:left}}
+@media(max-width:700px){.mining-stage{height:264px}.mining-rig{width:184px;top:8px}.mining-beam{top:173px;height:26px}.mining-contact{top:191px}.mining-sparks,.mining-dust{top:193px}.mining-rock{height:84px;width:210px}.mining-scanner{left:calc(50% - 92px);width:184px;top:95px}.mining-rig-caption{bottom:8px;right:8px;font-size:10px}.rig-card-title .rig-artwork{width:100px;height:100px}.mining-stage-label{font-size:9px}}
+@media(prefers-reduced-motion:reduce){.mining-console .mining-stage *,.mining-console .mining-cycle-report{animation:none!important;transition:none!important}.mining-running .mining-sparks,.mining-running .mining-dust,.mining-running .mining-scanner{opacity:0}.mining-running .mining-beam,.mining-running .mining-contact{opacity:.55}}
