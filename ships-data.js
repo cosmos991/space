@@ -12,4 +12,4 @@ export const shipDesign=id=>SHIPS.find(d=>d.id===id);
 export const activeDesign=s=>shipDesign(s?.fleet?.active)||SHIPS[0];
 export const cargoCapacity=s=>activeDesign(s).cargo;
 export const YARDS=['haven','forge','freeport'];
-export const MATERIALS={scrap:'금속 스크랩',alloy:'정제 합금',core:'동력 코어',special:'특수 소재'};
+export const MATERIALS={scrap:'금속 스크랩',alloy:'정제 합금',core:'동력 코어',special:'특수 소재',frame:'구조 프레임',mechanism:'정밀 기계 부품',circuit:'정밀 회로',coil:'에너지 코일',armor:'복합 장갑판',stable:'안정화 코어'};

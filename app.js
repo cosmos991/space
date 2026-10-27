@@ -1,3 +1,6 @@
+import {craftingHTML} from './crafting-ui.js';
+import {recipe,RECIPES} from './crafting.js';
+import {craftingOrder} from './engine.js';
 import {materialsHTML} from './materials.js';
 import {activeDesign,cargoCapacity,SHIP_ROLES,YARDS} from './ships-data.js';
 import {shipyardHTML,fleetSummaryHTML} from './shipyard-ui.js';
@@ -55,6 +58,7 @@ let imageTarget='person:test-navigator',imagePending=false,imageError='',imageQu
 try{const preferred=sessionStorage.getItem('asterion-image-provider');if(['openai','novelai'].includes(preferred))imageProvider=preferred;}catch{}
 let dataSection='home',dataContact='';
 let materialSelection='',materialFilter='all';
+let craftCategory='parts',craftSelected='part:frame',craftCount=1,craftSource='',craftReview=null;
 let imagesReady=Promise.resolve(),imagesLoaded=false;
 let cloud={configured:false,checked:false,busy:false,progress:'',error:'',archives:[],review:'',details:null,usage:null,deleteReview:''};
 const PROMPT_KEY='asterion-image-prompts-v1';
@@ -120,6 +124,7 @@ function renderDetail(){cancelCombatEffects();syncPanelNavigation();if(!workspac
  if(tab==='galaxy')html+=galaxyHTML(state,{generating,accessCode});
  if(tab==='data'&&dataSection==='portraits')html+=officerLinksHTML(FACTIONS);
  if(tab==='data'&&dataSection==='events')html+=eventSettingsHTML(state);
+ if(tab==='data'&&dataSection==='crafting')html+=craftingHTML(state,{category:craftCategory,selected:craftSelected,count:craftCount,source:craftSource,review:craftReview});
  if(tab==='data'&&dataSection==='materials')html+=materialsHTML(state,{selected:materialSelection,filter:materialFilter});
  if(tab==='data'&&dataSection==='saves')html+=progressHTML();
  if(tab==='data'&&dataSection==='cloud')html+=cloudHTML({...cloud,code:accessCode});
@@ -333,3 +338,15 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-yard-revie
 
 // Inventory browsing changes only the interface, never the saved item quantities.
 document.addEventListener('click',e=>{const b=e.target.closest('[data-material-select],[data-material-filter]');if(!b)return;if(b.dataset.materialSelect)materialSelection=b.dataset.materialSelect;else materialFilter=b.dataset.materialFilter;renderDetail();const selector=b.dataset.materialSelect?'[data-material-select="'+b.dataset.materialSelect+'"]':'[data-material-filter="'+materialFilter+'"]';document.querySelector(selector)?.focus({preventScroll:true});});
+
+document.addEventListener('click',e=>{const b=e.target.closest('[data-craft-category],[data-craft-recipe],[data-craft-review],[data-craft-confirm],[data-craft-cancel],[data-craft-track]');if(!b||cloud.busy)return;
+ if(b.hasAttribute('data-craft-confirm')){if(!craftReview)return;const order={...craftReview};act(()=>{const message=craftingOrder(state,order);craftReview=null;craftSource='';toast(message);});return;}
+ if(b.hasAttribute('data-craft-cancel')){craftReview=null;renderDetail();return;}
+ craftReview=null;
+ if(b.dataset.craftCategory){craftCategory=b.dataset.craftCategory;craftSelected=RECIPES.find(r=>r.category===craftCategory)?.id||'';craftSource='';craftCount=1;}
+ if(b.dataset.craftRecipe){dataSection='crafting';const r=recipe(b.dataset.craftRecipe);if(!r)return;craftSelected=r.id;if(!b.hasAttribute('data-craft-salvage-list'))craftCategory=r.category;craftSource='';craftCount=1;}
+ if(b.dataset.craftTrack){act(()=>toast(craftingOrder(state,{action:'track',id:b.dataset.craftTrack==='clear'?null:b.dataset.craftTrack})));return;}
+ if(b.dataset.craftReview)craftReview={action:b.dataset.craftReview,id:b.dataset.craftId,count:recipe(b.dataset.craftId)?.gear?1:craftCount,source:craftSource};
+ renderDetail();if(b.dataset.craftRecipe)document.querySelector('.craft-detail')?.scrollIntoView({block:'nearest'});
+});
+document.addEventListener('change',e=>{if(e.target.id!=='craft-count'&&e.target.id!=='craft-source')return;craftReview=null;if(e.target.id==='craft-count')craftCount=Number(e.target.value);else craftSource=e.target.value;renderDetail();document.querySelector(e.target.id==='craft-count'?'#craft-count':'#craft-source')?.focus({preventScroll:true});});

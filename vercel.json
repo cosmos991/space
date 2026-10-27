@@ -4,7 +4,7 @@
   "functions": {
     "api/comms.js": {
       "maxDuration": 30,
-      "includeFiles": "{materials,ships-data,shipyard,comms-levels,outcome-data,galaxy,galaxy-gen,engine,economy,usage,events,communications,world-data,factions,news,combat,equipment,missions,cargo,crew,crew-data}.js"
+      "includeFiles": "{crafting,materials,ships-data,shipyard,comms-levels,outcome-data,galaxy,galaxy-gen,engine,economy,usage,events,communications,world-data,factions,news,combat,equipment,missions,cargo,crew,crew-data}.js"
     },
     "api/explore.js": {
       "maxDuration": 60,
@@ -16,7 +16,7 @@
     },
     "api/archive.js": {
       "maxDuration": 60,
-      "includeFiles": "{materials,ships-data,shipyard,comms-levels,outcome-data,archive-schema,galaxy,galaxy-gen,engine,economy,usage,events,communications,world-data,factions,news,combat,equipment,missions,cargo,crew,crew-data}.js"
+      "includeFiles": "{crafting,materials,ships-data,shipyard,comms-levels,outcome-data,archive-schema,galaxy,galaxy-gen,engine,economy,usage,events,communications,world-data,factions,news,combat,equipment,missions,cargo,crew,crew-data}.js"
     },
     "api/crew-prompt.js": {
       "maxDuration": 60,
@@ -24,7 +24,7 @@
     },
     "api/mission-brief.js": {
       "maxDuration": 30,
-      "includeFiles": "{materials,ships-data,shipyard,comms-levels,outcome-data,galaxy,galaxy-gen,engine,economy,usage,events,communications,world-data,factions,news,combat,equipment,missions,cargo,crew,crew-data}.js"
+      "includeFiles": "{crafting,materials,ships-data,shipyard,comms-levels,outcome-data,galaxy,galaxy-gen,engine,economy,usage,events,communications,world-data,factions,news,combat,equipment,missions,cargo,crew,crew-data}.js"
     }
   },
   "headers": [
