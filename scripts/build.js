@@ -13,3 +13,6 @@ await mkdir('dist/assets',{recursive:true});
 await copyFile('assets/nomad.jpg','dist/assets/nomad.jpg');
 
 await copyFile('assets/raider-wireframe.jpg','dist/assets/raider-wireframe.jpg');
+
+await mkdir('dist/assets/materials',{recursive:true});
+for(const id of ['ore','tech','scrap','alloy','core','special'])await copyFile('assets/materials/'+id+'-v1.webp','dist/assets/materials/'+id+'-v1.webp');
