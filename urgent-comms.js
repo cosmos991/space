@@ -1,3 +1,4 @@
+import {place,placesFor,routeFor} from './world-data.js';
 import {crewMember} from './crew-data.js';
 import {FACTIONS} from './factions.js';
 import {missionOffers} from './missions.js';
@@ -6,12 +7,34 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 export const captainChannel=s=>'NMD-'+Number(s.galaxy.seed).toString(36).toUpperCase().padStart(7,'0');
 function reporter(s){const m=s.crew.roster.find(m=>m.assignment==='navigation')||s.crew.roster.find(m=>m.assignment==='engineering')||s.crew.roster[0];return m?crewMember(m.id,s):null;}
 function reportLine(c){return !c?'함선 AI가 우선순위 신호를 분리했습니다.':/신중|차분/.test(c.personality)||c.mbti?.startsWith('I')?'함장님, 이상 신호를 확인했습니다. 대응을 결정해 주세요.':'함장님, 전방에 특이 상황입니다! 지금 확인해 주세요.';}
+export function supplyDestination(s){
+ if(s.travel)return {panel:'navigation',location:s.travel.to,travel:true};
+ if(place(s.location,s)?.market)return {panel:'market',location:s.location};
+ const ports=placesFor(s).filter(p=>p.market).map(p=>({p,r:routeFor(s,p.id)})).filter(x=>x.r&&x.r.fuel<=s.fuel).sort((a,b)=>a.r.fuel-b.r.fuel||a.r.total-b.r.total);
+ return ports.length?{panel:'navigation',location:ports[0].p.id}:{panel:'navigation',location:s.location,stranded:true};
+}
+export function supplySignals(s){
+ const out=[],c=reporter(s),destination=supplyDestination(s);
+ const help=destination.travel?'항해 중입니다. 목적지 도착 후 보급 가능 여부를 확인하세요.':destination.panel==='market'?'현재 교역항에서 바로 보급할 수 있습니다.':destination.stranded?'남은 연료로 도달 가능한 보급항이 없습니다. 현재 구역의 긴급 예인이나 성간 항로를 확인하세요.':place(destination.location,s).name+' 보급항까지 항로를 확인하세요.';
+ for(const [resource,value,low,critical] of [['fuel',s.fuel,20,5],['food',s.cargo.food,2,0]]){
+  if(value>low)continue;const level=value<=critical?'critical':'low',name=resource==='fuel'?'연료':'식량',amount=resource==='fuel'?value.toLocaleString('ko-KR',{maximumFractionDigits:1})+' / 100':value+'t';
+  out.push({key:'supply:'+resource+':'+level,type:level==='critical'?'supply-critical':'supply',label:level==='critical'?'긴급 보급 경고':'함내 보급 보고',sender:c?.name||'함선 보급 AI',portrait:c?imageSource(s,'person:'+c.id):'',title:name+(value===0?' 고갈':level==='critical'?' 잔량 위험':' 부족 주의'),body:'함장님, '+name+' 잔량이 '+amount+'입니다. '+(resource==='fuel'?'추가 출항·탐사·채굴에 필요한 연료를 확보해 주세요.':'구호 임무와 현장 지원에 사용할 일반 식량을 확보해 주세요. 봉인 임무 화물은 식량 재고에 포함되지 않습니다.'),note:help+' 알림 확인 시 시간이 정지됩니다.',action:destination.panel==='market'?(resource==='fuel'?'연료 보급 화면 열기':'식량 구매 화면 열기'):destination.travel?'도착 구역 확인':destination.stranded?'현재 구역 · 긴급 예인 확인':'보급항 항로 확인',target:{kind:'supply',resource,level}});
+ }
+ return out.sort((a,b)=>(a.target.level==='critical'?0:1)-(b.target.level==='critical'?0:1));
+}
+// Reuse existing acknowledgement storage; recovery rearms only that severity.
+export function resetSupplyAcknowledgements(s){
+ const seen=s.world.urgentSeen;if(!seen)return false;
+ const keep=seen.filter(key=>{const match=/^supply:(fuel|food):(low|critical)$/.exec(key);if(!match)return true;const [,resource,level]=match,value=resource==='fuel'?s.fuel:s.cargo.food;return value<=(resource==='fuel'?(level==='critical'?5:20):(level==='critical'?0:2));});
+ if(keep.length===seen.length)return false;s.world.urgentSeen=keep;return true;
+}
 export function urgentSignals(s){
  const seen=new Set(s.world.urgentSeen||[]),out=[],c=reporter(s),e=s.event;
  if(e&&['raiders','ion','debris','gravity','micrometeor','rescue','signal','crew-rescue','relic','cache','probe','wreck','comet'].includes(e.id)){
   const pirate=e.id==='raiders';out.push({key:'event:'+(e.uid||e.id+'-'+e.created),type:pirate?'hostile':['ion','debris','gravity','micrometeor'].includes(e.id)?'hazard':'crew',label:pirate?'긴급 통신 · 적대 함선 접근':'승무원 우선 보고 · 특수 사건',sender:pirate?e.enemy?.name||'미확인 무장 함선':c?.name||'노마드 함선 AI',portrait:!pirate&&c?imageSource(s,'person:'+c.id):'',title:e.title,body:pirate?'외부 무장 함선이 접근하며 노마드의 응답을 요구하고 있습니다. 교전·철수·통행료 중 대응을 선택해야 합니다.':reportLine(c)+' '+e.text,note:pirate?(c?.name||'전술 AI')+' 보고: 무장 신호 포착. 함장님의 대응을 기다립니다.':'보고자 · '+(c?.title||'자율 항로 감시'),action:'상황 확인 · 대응 선택',target:{kind:'event',uid:e.uid,location:e.location}});
  }
  const f=s.world.forecast;if(f&&s.travel&&f.from===s.travel.from&&f.to===s.travel.to)out.push({key:'forecast:'+f.id+':'+f.created,type:'hazard',label:'승무원 긴급 보고 · 항로 사전 경고',sender:c?.name||'노마드 항로 센서',portrait:c?imageSource(s,'person:'+c.id):'',title:f.id==='ion'?'전방 이온 폭풍 징후':'전방 항로 이상 징후',body:reportLine(c)+' 전방 위험 징후를 감지했습니다. 현재는 사전 경고이며, 접근하면 실제 사건으로 이어질 수 있습니다.',note:'지도에 경고가 표시되었습니다. 항해가 일시 정지되었습니다.',action:'위험 항로 확인',target:{kind:'forecast',location:f.to}});
+ out.push(...supplySignals(s));
  const offers=new Set(missionOffers(s).map(m=>m.offerId));
  for(const channel of s.comms.channels.filter(c=>c.kind==='direct'))for(const m of channel.messages){if(m.priority!=='urgent'||!offers.has(m.missionId)||Math.floor(m.hours/24)!==Math.floor(s.hours/24))continue;const f=FACTIONS.find(f=>f.id===m.missionFaction);if(!f)continue;out.push({key:'mission:'+channel.id+':'+m.seq,type:'mission',label:'긴급 직통 통신 · 함장 전용 코드 수신',sender:f.contact.name,portrait:imageSource(s,'person:faction-'+f.id),title:'우선 대응 임무 요청',body:m.content,note:'수신 대상 · '+captainChannel(s)+' / '+f.name+' 인증 회선',action:'의뢰 내용 검토',target:{kind:'mission',id:m.missionId,faction:f.id}});}
  return out.filter(m=>!seen.has(m.key));
@@ -22,6 +45,6 @@ export function createUrgentComms({dialog,getState,onAcknowledge,onAction,onPres
  let active=null,origin=null,follow=false;
  dialog.addEventListener('click',e=>{if(e.target.closest('[data-urgent-action]')){follow=true;dialog.close();}else if(e.target.closest('[data-urgent-dismiss]'))dialog.close();});
  dialog.addEventListener('close',()=>{const d=active,s=origin,action=follow;active=null;origin=null;follow=false;if(d&&s===getState()){acknowledgeUrgent(s,d.key);onAcknowledge();if(action&&urgentTargetValid(s,d))onAction(d);}});
- return {update(blocked=false){const s=getState();if(active&&(s!==origin||!urgentTargetValid(s,active))){active=null;origin=null;follow=false;dialog.close();return;}if(active||blocked)return;const next=urgentSignals(s)[0];if(!next)return;origin=s;active=next;dialog.innerHTML=urgentCommsHTML(s,next);onPresent();dialog.showModal();}};
+ return {update(blocked=false){const s=getState();if(resetSupplyAcknowledgements(s))onAcknowledge();if(active&&(s!==origin||!urgentTargetValid(s,active))){active=null;origin=null;follow=false;dialog.close();return;}if(active||blocked)return;const next=urgentSignals(s)[0];if(!next)return;origin=s;active=next;dialog.innerHTML=urgentCommsHTML(s,next);onPresent();dialog.showModal();}};
 }
-function urgentTargetValid(s,d){if(d.target.kind==='event')return !!s.event&&(s.event.uid===d.target.uid);if(d.target.kind==='forecast')return !!s.world.forecast&&!!s.travel&&d.target.location===s.travel.to&&d.key==='forecast:'+s.world.forecast.id+':'+s.world.forecast.created;return missionOffers(s).some(m=>m.offerId===d.target.id);}
+function urgentTargetValid(s,d){if(d.target.kind==='supply')return supplySignals(s).some(x=>x.key===d.key);if(d.target.kind==='event')return !!s.event&&(s.event.uid===d.target.uid);if(d.target.kind==='forecast')return !!s.world.forecast&&!!s.travel&&d.target.location===s.travel.to&&d.key==='forecast:'+s.world.forecast.id+':'+s.world.forecast.created;return missionOffers(s).some(m=>m.offerId===d.target.id);}

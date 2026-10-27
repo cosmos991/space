@@ -17,7 +17,7 @@ import {shipyardHTML,fleetSummaryHTML} from './shipyard-ui.js';
 import {shipyardOrder} from './engine.js';
 import {missionTemplate,storeMissionBrief} from './missions.js';
 import {channelLevel,setChannelLevel,setCrewLevel} from './comms-levels.js';
-import {createUrgentComms} from './urgent-comms.js';
+import {createUrgentComms,supplyDestination} from './urgent-comms.js';
 import {outcomeSnapshot} from './outcome-data.js';
 import {eventResult,combatResult,showResultFeedback} from './result-feedback.js';
 import {prepareMissionFeedback,finishMissionFeedback,showMissionFeedback} from './mission-feedback.js';
@@ -120,7 +120,7 @@ function closePanel(){detailMotionKey='';for(const motion of detailMotion)motion
 $('#close-panel').onclick=closePanel;
 workspacePanel.addEventListener('close',()=>{cancelCombatEffects();syncPanelNavigation();if(!document.activeElement||document.activeElement===document.body||workspacePanel.contains(document.activeElement))$('.brand')?.focus();});
 workspacePanel.addEventListener('click',e=>{if(e.target!==workspacePanel)return;const r=workspacePanel.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closePanel();});
-const urgentComms=createUrgentComms({dialog:$('#urgent-comms'),getState:()=>state,onPresent:()=>{setSpeed(0);save();},onAcknowledge:()=>save(),onAction:d=>{if(d.target.kind==='mission'){focusedFaction=d.target.faction;selectedMission=d.target.id;reviewMission=d.target.id;openPanel('missions');}else{selected=d.target.location||state.location;openPanel(state.combat?.status==='active'?'combat':'navigation');}}});
+const urgentComms=createUrgentComms({dialog:$('#urgent-comms'),getState:()=>state,onPresent:()=>{setSpeed(0);save();},onAcknowledge:()=>save(),onAction:d=>{if(d.target.kind==='supply'){const next=supplyDestination(state);selected=next.location;if(d.target.resource==='food'){order.good='food';order.buy=true;order.quantity=5;}openPanel(next.panel);return;}if(d.target.kind==='mission'){focusedFaction=d.target.faction;selectedMission=d.target.id;reviewMission=d.target.id;openPanel('missions');}else{selected=d.target.location||state.location;openPanel(state.combat?.status==='active'?'combat':'navigation');}}});
 function syncUrgent(){urgentComms.update(!entryAuthorized||document.body.classList.contains('entry-active')||cloud.busy||busy||combatAnimating||['modal','mission-feedback','result-feedback'].some(id=>$('#'+id).open));}
 function renderNews(){const issues=regionalIssues(state),signature=JSON.stringify([issues,newsPaused]);if(signature===newsSignature)return;newsSignature=signature;$('#region-news').innerHTML=tickerHTML(issues,newsPaused);}
 function renderMap(){

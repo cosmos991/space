@@ -225,3 +225,6 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 @media(max-width:900px){.rig-card-title{display:flex}.rig-card-title .rig-artwork{width:112px;height:112px;margin:0 12px 0 0}.rig-card-title>div{text-align:left}}
 @media(max-width:700px){.mining-stage{height:264px}.mining-rig{width:184px;top:8px}.mining-beam{top:173px;height:26px}.mining-contact{top:191px}.mining-sparks,.mining-dust{top:193px}.mining-rock{height:84px;width:210px}.mining-scanner{left:calc(50% - 92px);width:184px;top:95px}.mining-rig-caption{bottom:8px;right:8px;font-size:10px}.rig-card-title .rig-artwork{width:100px;height:100px}.mining-stage-label{font-size:9px}}
 @media(prefers-reduced-motion:reduce){.mining-console .mining-stage *,.mining-console .mining-cycle-report{animation:none!important;transition:none!important}.mining-running .mining-sparks,.mining-running .mining-dust,.mining-running .mining-scanner{opacity:0}.mining-running .mining-beam,.mining-running .mining-contact{opacity:.55}}
+
+.urgent-supply{--urgent:#f2cf87}.urgent-supply-critical{--urgent:#ff9b87}
+.urgent-supply .urgent-message h2,.urgent-supply-critical .urgent-message h2{font-variant-numeric:tabular-nums}
