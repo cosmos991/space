@@ -1,3 +1,4 @@
+import {missionMaterials,materialRewardText,materialRewardReason,grantMaterials} from './materials.js';
 import {cargoCapacity} from './ships-data.js';
 import {removeCargo} from './economy.js';
 import {FACTIONS,faction,gainStanding} from './factions.js';
@@ -69,6 +70,7 @@ export function missionStatus(s,id,action){const m=missionRecord(s,id),offer=mis
   else if(action==='complete'){if(t.type==='delivery'){if(!m.cargo)reason='발주처에서 임무 화물을 먼저 수령하세요.';else if(s.location!==t.to)reason=place(t.to,s).name+'에 화물을 전달하세요.';}else if(!m.progress)reason=t.type==='survey'?'임무용 정밀 스캔을 먼저 완료하세요.':t.type==='salvage'?'봉인 잔해를 먼저 회수하세요.':t.type==='relief'?'현장 구호를 먼저 완료하세요.':'지정 표적을 먼저 격퇴하세요.';else if(s.location!==t.from)reason=place(t.from,s).name+'에서 담당자에게 보고하세요.';}
   else reason='알 수 없는 임무 행동입니다.';
  }
+ if(!reason&&action==='complete')reason=materialRewardReason(s,missionMaterials(t));
  return {eligible:!reason,reason};
 }
 export function executeMission(s,id,action){if(!['accept','pickup','scan','recover','assist','complete','abandon'].includes(action))throw Error('알 수 없는 임무 행동입니다.');const status=missionStatus(s,id,action);if(!status.eligible)throw Error(status.reason);const store=migrateMissions(s);let m=missionRecord(s,id);const t=m?missionTemplate(m.template):missionOffers(s).find(o=>o.offerId===id);
@@ -78,7 +80,7 @@ export function executeMission(s,id,action){if(!['accept','pickup','scan','recov
  if(action==='recover'){s.fuel-=3;m.cargo=t.quantity;m.progress=1;text=t.title+' · 봉인 잔해 '+t.quantity+'t 회수 완료. '+place(t.from,s).name+'에 인계하세요.';}
  if(action==='assist'){s.fuel-=2;removeCargo(s,'food',2);m.progress=1;text=t.title+' · 식량 2t 지원과 구조 접근 지원 완료. '+place(t.from,s).name+'에 귀환 보고하세요.';}
  if(action==='complete'||action==='abandon'){
-  if(action==='complete'){s.credits+=t.reward;gainStanding(s,t.faction,t.honor,t.trust);store.completed[t.faction]++;text=`${t.title} 완료. ${t.reward} CR · 명예 +${t.honor} · ${faction(t.faction).name} 신뢰 +${t.trust}.`;}
+  if(action==='complete'){grantMaterials(s,missionMaterials(t));s.credits+=t.reward;gainStanding(s,t.faction,t.honor,t.trust);store.completed[t.faction]++;text=`${t.title} 완료. ${t.reward} CR · 명예 +${t.honor} · ${faction(t.faction).name} 신뢰 +${t.trust} · ${materialRewardText(missionMaterials(t))}.`;}
   else text=`${t.title} 임무를 포기했습니다. 보상과 불이익은 없으며 봉인 화물은 발주처 회수 처리됩니다.`;
   store.active=store.active.filter(x=>x.id!==id);store.history.unshift({id,template:t.id,status:action==='complete'?'completed':'abandoned',time:s.hours});store.history=store.history.slice(0,30);store.lastClosed[t.id]={status:action==='complete'?'completed':'abandoned',time:s.hours};
  }

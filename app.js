@@ -1,3 +1,4 @@
+import {materialsHTML} from './materials.js';
 import {activeDesign,cargoCapacity,SHIP_ROLES,YARDS} from './ships-data.js';
 import {shipyardHTML,fleetSummaryHTML} from './shipyard-ui.js';
 import {shipyardOrder} from './engine.js';
@@ -118,6 +119,7 @@ function renderDetail(){cancelCombatEffects();syncPanelNavigation();if(!workspac
  if(tab==='galaxy')html+=galaxyHTML(state,{generating,accessCode});
  if(tab==='data'&&dataSection==='portraits')html+=officerLinksHTML(FACTIONS);
  if(tab==='data'&&dataSection==='events')html+=eventSettingsHTML(state);
+ if(tab==='data'&&dataSection==='materials')html+=materialsHTML(state);
  if(tab==='data'&&dataSection==='saves')html+=progressHTML();
  if(tab==='data'&&dataSection==='cloud')html+=cloudHTML({...cloud,code:accessCode});
  if(tab==='data'&&dataSection==='images')html+=imagesHTML(state,imageTarget,{pending:imagePending,prompt:imageDrafts[imageProvider+':'+imageTarget],accessCode,quality:imageQuality,error:imageError,provider:imageProvider,negativePrompt:imageNegative[imageTarget],seed:imageSeeds[imageTarget]||'',providers:imageProviders,fixedAppearance:imageDrafts['appearance:'+state.galaxy.seed+':'+imageTarget]||'',suggestion:crewPromptSuggestion?.key===state.galaxy.seed+':'+imageTarget?crewPromptSuggestion:null});
