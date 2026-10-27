@@ -10,7 +10,7 @@ export function missionMaterials(t){
 export const materialRewardText=r=>Object.entries(r).map(([k,n])=>`${MATERIALS[k]} +${n}`).join(' · ');
 export function materialRewardReason(s,reward){return Object.entries(reward).some(([k,n])=>!Object.hasOwn(MATERIALS,k)||!Number.isSafeInteger(n)||n<0||!Number.isSafeInteger(s.fleet?.materials[k])||s.fleet.materials[k]+n>MATERIAL_LIMIT)?'재료 창고 한도를 확인하세요. 조선소에서 자재를 사용한 뒤 보상을 수령할 수 있습니다.':'';}
 export function grantMaterials(s,reward){const reason=materialRewardReason(s,reward);if(reason)throw Error(reason);for(const [k,n]of Object.entries(reward))s.fleet.materials[k]+=n;}
-export const sources={ore:'소행성대 반복 채굴 · 광맥 탐사',tech:'일반 잔해 인양 · 거래소 · 탐사 및 사건',scrap:'운송·현상금·회수 임무 · 일반 잔해 인양',alloy:'현상금·구호 임무 · 기존 조선소 정제',core:'잔해 회수 임무 · 기존 조선소 조립',special:'탐사 임무 · 위험도 높은 임무'};
+export const sources={ore:'소행성대 반복 채굴 · 광맥 탐사',tech:'일반 잔해 인양 · 거래소 · 탐사 및 사건',scrap:'운송·현상금·회수 임무 · 일반 잔해 인양',alloy:'현상금·구호 임무 · 기존 조선소 정제',core:'잔해 회수 임무 · 기존 조선소 조립',special:'소행성대 광맥 채굴 · 탐사 임무 · 위험도 높은 임무'};
 export const ITEMS={
  ore:{name:'광물',group:'원자재',tone:'copper',description:'소행성대에서 채굴한 원석. 함선 건조와 기존 합금 정제에 사용합니다.'},
  tech:{name:'기술 부품',group:'전자 부품',tone:'blue',description:'회로와 정밀 제어 부품. 함선 건조와 기존 동력 코어 조립에 사용합니다.'},
