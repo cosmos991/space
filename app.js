@@ -1,3 +1,5 @@
+import {signalReviewHTML} from './galaxy-intel-ui.js';
+import {systemSignals,SURVEY_MODES} from './galaxy-intel.js';
 import {signalOrder} from './engine.js';
 import {miningHTML,miningSummaryHTML} from './mining-ui.js';
 import {miningOrder} from './engine.js';
@@ -19,9 +21,9 @@ import {shipyardOrder} from './engine.js';
 import {missionTemplate,storeMissionBrief} from './missions.js';
 import {channelLevel,setChannelLevel,setCrewLevel} from './comms-levels.js';
 import {createUrgentComms,supplyDestination} from './urgent-comms.js';
-import {outcomeSnapshot} from './outcome-data.js';
+import {outcomeSnapshot,outcomeChanges} from './outcome-data.js';
 import {eventResult,combatResult,showResultFeedback} from './result-feedback.js';
-import {prepareMissionFeedback,finishMissionFeedback,showMissionFeedback} from './mission-feedback.js';
+import {showFeedbackDialog,prepareMissionFeedback,finishMissionFeedback,showMissionFeedback} from './mission-feedback.js';
 import {getOfficerLinks,setOfficerLinks,validOfficerLink,officerLinksHTML} from './officer-links.js';
 import {createEntry} from './intro-ui.js';
 import {buyTradeProduct} from './faction-shop.js';
@@ -417,4 +419,5 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-mining-vei
 });
 document.addEventListener('change',e=>{if(e.target.id!=='mining-safety')return;miningSafety=Number(e.target.value);renderDetail();$('#mining-safety')?.focus({preventScroll:true});});
 
-document.addEventListener('click',e=>{const b=e.target.closest('[data-signal-investigate]');if(!b||cloud.busy)return;if(busy||generating||imagePending||combatAnimating){toast('진행 중인 작업을 마친 뒤 조사하세요.',true);return;}setSpeed(0);act(()=>{toast(signalOrder(state,b.dataset.signalInvestigate));if(state.event){selected=state.location;openPanel('navigation');}});});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-signal-investigate],[data-signal-confirm]');if(!b||cloud.busy)return;if(busy||generating||imagePending||combatAnimating){toast('진행 중인 작업을 마친 뒤 조사하세요.',true);return;}setSpeed(0);const mode=b.dataset.signalMode||'standard';if(b.dataset.signalInvestigate){showFeedbackDialog($('#modal'),signalReviewHTML(state,b.dataset.signalInvestigate,mode));return;}
+ act(()=>{if(b.dataset.signalSystem!==state.galaxy.current)throw Error('성계가 변경되었습니다. 조사 조건을 다시 확인하세요.');const id=b.dataset.signalConfirm,d=systemSignals(state).find(x=>x.id===id),before=outcomeSnapshot(state),materials={...state.fleet.materials},hours=state.hours,message=signalOrder(state,id,mode),after=outcomeSnapshot(state),changes=outcomeChanges(before,after);for(const k of ['scrap','special']){const delta=state.fleet.materials[k]-materials[k];if(delta)changes.push({label:k==='scrap'?'금속 스크랩':'특수 소재',delta,unit:'개',beneficial:delta>0});}changes.push({label:'조사 경과 시간',delta:state.hours-hours,unit:'h',beneficial:false});$('#modal').close();if(state.event){selected=state.location;openPanel('navigation');}showResultFeedback($('#result-feedback'),{kind:'survey',heading:'신호 조사 완료',title:d.name,choice:SURVEY_MODES[mode].name,explanation:message,message:'회수품과 조사 기록이 저장되었습니다.',changes,after,scope:'조사 및 시간 경과 중 발생한 실제 순변화',tone:after.hull<before.hull?'warning':'success',next:state.event?'조사 중 사건이 발생했습니다. 결과 확인 후 대응하세요.':'성간 지도에서 다른 신호와 제작 목표를 확인하세요.'});});});

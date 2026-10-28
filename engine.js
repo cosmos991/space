@@ -79,4 +79,4 @@ export function upgradeOrder(s,order){migrateState(s);const result=executeUpgrad
 
 export function miningOrder(s,order){migrateState(s);const text=executeMining(s,order);log(s,text,'trade');return text;}
 
-export function signalOrder(s,id){migrateState(s);const d=investigateSignal(s,id);log(s,d.name+' 조사 완료 · '+d.report,'success');tick(s,2);return d.report;}
+export function signalOrder(s,id,mode='standard'){migrateState(s);const d=investigateSignal(s,id,mode);log(s,d.name+' 조사 완료 · '+d.report,d.damage?'alert':'success');tick(s,d.hours);return d.report;}
