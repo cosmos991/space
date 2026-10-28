@@ -1,3 +1,4 @@
+import {signalOrder} from './engine.js';
 import {miningHTML,miningSummaryHTML} from './mining-ui.js';
 import {miningOrder} from './engine.js';
 import {MINING_CYCLE} from './mining.js';
@@ -415,3 +416,5 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-mining-vei
  setSpeed(0);act(()=>{toast(miningOrder(state,order));miningReview=null;if(order.action==='deploy')setSpeed(1);});
 });
 document.addEventListener('change',e=>{if(e.target.id!=='mining-safety')return;miningSafety=Number(e.target.value);renderDetail();$('#mining-safety')?.focus({preventScroll:true});});
+
+document.addEventListener('click',e=>{const b=e.target.closest('[data-signal-investigate]');if(!b||cloud.busy)return;if(busy||generating||imagePending||combatAnimating){toast('진행 중인 작업을 마친 뒤 조사하세요.',true);return;}setSpeed(0);act(()=>{toast(signalOrder(state,b.dataset.signalInvestigate));if(state.event){selected=state.location;openPanel('navigation');}});});

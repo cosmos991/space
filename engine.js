@@ -1,3 +1,4 @@
+import {investigateSignal} from './galaxy-intel.js';
 import {migrateMining,validMining,executeMining,advanceMining,MINING_CYCLE} from './mining.js';
 import {executeUpgrade} from './upgrades.js';
 import {migrateFabrication,validFabrication,executeCraft} from './crafting.js';
@@ -77,3 +78,5 @@ export function craftingOrder(s,order){migrateState(s);const text=executeCraft(s
 export function upgradeOrder(s,order){migrateState(s);const result=executeUpgrade(s,order);log(s,result,'trade');return result;}
 
 export function miningOrder(s,order){migrateState(s);const text=executeMining(s,order);log(s,text,'trade');return text;}
+
+export function signalOrder(s,id){migrateState(s);const d=investigateSignal(s,id);log(s,d.name+' 조사 완료 · '+d.report,'success');tick(s,2);return d.report;}
