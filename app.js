@@ -1,3 +1,4 @@
+import {createNotificationCenter,constructionNotice} from './flight-notifications.js';
 import {specialMarketsHTML,specialMarketReviewHTML} from './special-market-ui.js';
 import {marketOffers,courierOffer} from './special-markets.js';
 import {specialMarketOrder} from './engine.js';
@@ -25,7 +26,7 @@ import {craftingHTML} from './crafting-ui.js';
 import {recipe,RECIPES} from './crafting.js';
 import {craftingOrder} from './engine.js';
 import {materialsHTML} from './materials.js';
-import {activeDesign,cargoCapacity,SHIP_ROLES,YARDS} from './ships-data.js';
+import {SHIPS,activeDesign,cargoCapacity,SHIP_ROLES,YARDS} from './ships-data.js';
 import {shipyardHTML,fleetSummaryHTML} from './shipyard-ui.js';
 import {shipyardOrder} from './engine.js';
 import {missionTemplate,storeMissionBrief} from './missions.js';
@@ -69,7 +70,7 @@ import {quoteTrade,unitPrice,PORTS} from './economy.js';
 import {tradingHTML} from './trading-ui.js';
 import {PLACES,GOODS,FACTIONS,place,usedCargo,freshState,route,depart,tick,trade,service,survey,claim,contract,tow,resolveEvent,validSave,migrateState,purchasePlanet,deliverOre,shareSurveys,combatOrder,equipmentOrder,missionOrder,crewOrder} from './engine.js';
 const $=s=>document.querySelector(s),esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const KEY='asterion-save-v1';let state=freshState(),selected='terra',tab='navigation',speed=0,busy=false,toastTimer,saveWarning=false,channel='확인 중';
+const KEY='asterion-save-v1';let state=freshState(),selected='terra',tab='navigation',speed=0,busy=false,saveWarning=false,channel='확인 중';
 let startupSave;try{startupSave=readProgress(localStorage);}catch{startupSave={blocked:true,warning:'브라우저 저장소에 접근할 수 없습니다. 파일로 저장해 주세요.'};}let saveBlocked=!!startupSave.blocked;if(startupSave.state)state=startupSave.state;
 let chartFilter='all',chartPoint='';
 selected=state.location;let focusedFaction='union',confirmPurchase=false;
@@ -108,7 +109,11 @@ window.addEventListener('storage',e=>{if(e.key!==USAGE_KEY)return;try{const late
 const radioDrafts={};let radioAddOpen=false,commsListOpen=false,renderedSequence=0;
 let entryAuthorized=false;let accessCode='';try{accessCode=sessionStorage.getItem('asterion-access')||'';}catch{}
 const fmt=n=>Math.floor(n).toLocaleString('ko-KR');const time=h=>`D${String(Math.floor(h/24)+1).padStart(3,'0')} ${String(Math.floor(h%24)).padStart(2,'0')}:00`;
-function toast(message,error=false){$('#toast').textContent=message;$('#toast').className=`visible${error?' error':''}`;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').className='',4000);}
+const flightNotices=createNotificationCenter(document.getElementById('flight-notifications'));
+function toast(message,error=false,options={}){flightNotices.push(message,error,options);}
+let constructionObserved=null;
+function syncConstructionNotice(){const notice=constructionNotice(constructionObserved,state);if(notice)toast(`${SHIPS.find(d=>d.id===notice.design)?.name||notice.design} 건조 완료 · ${place(notice.port,state)?.name||notice.port}에서 인수할 수 있습니다.`,false,{title:'함선 건조 완료',icon:'⚒',tone:'success'});const job=state.fleet?.job;constructionObserved={state,readyKey:job&&state.hours>=job.ready?job.design+':'+job.started:null};}
+
 let fullSaveQueue=Promise.resolve();const fullSlots={};
 function captureBundle(){return createBundle(state,exportWorldImages(state),promptSettings());}
 function applyPromptSettings(settings){for(const [target,source]of [[imageDrafts,settings.drafts],[imageNegative,settings.negative],[imageSeeds,settings.seeds]]){for(const k of Object.keys(target))delete target[k];Object.assign(target,source);}imageProvider=settings.provider;setPositiveBase(settings.positiveBase);restoreOfficerLinks();persistPrompts();}
@@ -185,7 +190,7 @@ function renderDetail(){const goalRoot=$('#craft-goal');if(goalRoot)goalRoot.inn
 }
 function renderShip(){if(!$('#ship'))return;$('#ship').innerHTML=`<div class="ship-grid"><div class="ship-silhouette"><svg viewBox="0 0 120 80" aria-label="노마드 탐사선"><path d="M60 4L72 28L78 31L86 21L90 57L78 64L68 60L66 74H54L52 60L42 64L30 57L34 21L42 31L48 28Z" fill="#15333e" stroke="#698e9f"/><path d="M60 14L66 36L60 43L54 36Z" fill="#68d5c0"/><path d="M44 38V53M76 38V53M57 53V67M63 53V67" stroke="#416c7b"/></svg></div><div><small>선체 내구도</small><strong>${state.hull}% <span class="muted">/ 정상</span></strong><div class="meter"><i style="width:${state.hull}%"></i></div><small>동력 장치</small><strong>온라인</strong></div><div><small>실드 출력</small><strong>${state.shield} / ${shipStats(state).maxShield} <span class="muted">/ 정상</span></strong><div class="meter"><i style="width:${state.shield/shipStats(state).maxShield*100}%;background:#769ee1"></i></div><small>승무원</small><strong>${state.crew.roster.length} / ${crewCapacity(state)}명 <span class="muted">/ 함장 별도</span></strong></div></div>`;}
 
-function render(){renderNews();renderStats();renderMap();renderDetail();renderShip();renderTime();syncUrgent();}
+function render(){syncConstructionNotice();renderNews();renderStats();renderMap();renderDetail();renderShip();renderTime();syncUrgent();}
 async function issueCombatOrder(action){
  if(combatAnimating)return;
  const root=$('.combat-console');let receipt=null;
@@ -245,7 +250,7 @@ function showHelp(){closePanel();setSpeed(0);$('#modal').innerHTML=`<div class="
 $('#help').onclick=showHelp;
 $('#reset').onclick=()=>{if(busy||generating||imagePending||cloud.busy){toast('진행 중인 작업이 끝난 뒤 새 항해를 시작하세요.',true);return;}setSpeed(0);closePanel();$('#modal').innerHTML='<h2>새로운 항해를 시작할까요?</h2><p>현재 게임·이미지·프롬프트를 전체 백업한 뒤 새로운 우주에서 시작합니다. 기존 슬롯과 클라우드 저장본은 보존됩니다.</p><div class="actions"><button id="cancel-reset">취소</button><button class="primary" id="confirm-reset">백업 후 새로 시작하기</button></div>';$('#modal').showModal();$('#cancel-reset').onclick=()=>$('#modal').close();$('#confirm-reset').onclick=async()=>{if(cloud.busy)return;cloud.busy=true;$('#confirm-reset').disabled=true;try{await imagesReady;await fullSaveQueue.catch(()=>{});await writeBundle('before-restore',captureBundle());const next=freshState();writeProgress(localStorage,next,{replace:true});state=next;saveBlocked=false;saveWarning=false;selected=state.location;tab='navigation';chartPoint='';confirmPurchase=false;dataSection='home';dataContact='';selectedCrew=CREW_CANDIDATES[0].id;crewView='aboard';crewReview='';crewPromptSuggestion=null;for(const target of [crewDrafts,crewAssignments])for(const key of Object.keys(target))delete target[key];reviewMission='';selectedMission='';marketDay=0;saveElapsed=0;newsSignature='';save();await fullSaveQueue;render();$('#modal').close();cloud.busy=false;await entry.playNew();}catch(error){toast(error.message,true);$('#confirm-reset').disabled=false;}finally{cloud.busy=false;}};};
 
-let last=performance.now(),saveElapsed=0,marketDay=Math.floor(state.hours/24),specialMarketHour=Math.floor(state.hours);setInterval(()=>{const now=performance.now(),elapsed=Math.min((now-last)/1000,1);last=now;if(!speed||busy){syncUrgent();return;}const wasTravel=!!state.travel,wasMining=state.mining?.job,miningCycles=wasMining?.cycles;tick(state,elapsed*speed);if(state.event||(wasTravel&&!state.travel)){setSpeed(0);save();if(!state.event){selected=state.location;confirmPurchase=false;openPanel('navigation');toast(`${place(state.location,state).name} 도착. 시간이 정지되었습니다.`);}else{openPanel(state.combat?.status==='active'?'combat':'navigation');toast(`${state.event.title} · 대응을 선택하세요.`);}render();}else{renderNews();renderStats();renderMap();renderTime();if(tab==='data'&&dataSection==='mining'&&(miningCycles!==state.mining?.job?.cycles||!!wasMining!==!!state.mining?.job))renderDetail();updateMiningLive();if(wasMining&&!state.mining?.job){setSpeed(0);save();toast(state.mining.last?.text||'채굴 종료');}if(tab==='shipyard'||tab==='assets'&&!document.activeElement?.closest('[data-finance-form]')||(tab==='market'&&marketDay!==Math.floor(state.hours/24))||(tab==='data'&&dataSection==='special-markets'&&specialMarketHour!==Math.floor(state.hours)))renderDetail();marketDay=Math.floor(state.hours/24);specialMarketHour=Math.floor(state.hours);refreshRadio();renderShip();}syncUrgent();saveElapsed+=elapsed;if(saveElapsed>3){save();saveElapsed=0;}},500);
+let last=performance.now(),saveElapsed=0,marketDay=Math.floor(state.hours/24),specialMarketHour=Math.floor(state.hours);setInterval(()=>{const now=performance.now(),elapsed=Math.min((now-last)/1000,1);last=now;if(!speed||busy){syncUrgent();return;}const wasTravel=!!state.travel,wasMining=state.mining?.job,miningCycles=wasMining?.cycles;tick(state,elapsed*speed);syncConstructionNotice();if(state.event||(wasTravel&&!state.travel)){setSpeed(0);save();if(!state.event){selected=state.location;confirmPurchase=false;openPanel('navigation');toast(`${place(state.location,state).name} 도착. 시간이 정지되었습니다.`);}else{openPanel(state.combat?.status==='active'?'combat':'navigation');toast(`${state.event.title} · 대응을 선택하세요.`);}render();}else{renderNews();renderStats();renderMap();renderTime();if(tab==='data'&&dataSection==='mining'&&(miningCycles!==state.mining?.job?.cycles||!!wasMining!==!!state.mining?.job))renderDetail();updateMiningLive();if(wasMining&&!state.mining?.job){setSpeed(0);save();toast(state.mining.last?.text||'채굴 종료');}if(tab==='shipyard'||tab==='assets'&&!document.activeElement?.closest('[data-finance-form]')||(tab==='market'&&marketDay!==Math.floor(state.hours/24))||(tab==='data'&&dataSection==='special-markets'&&specialMarketHour!==Math.floor(state.hours)))renderDetail();marketDay=Math.floor(state.hours/24);specialMarketHour=Math.floor(state.hours);refreshRadio();renderShip();}syncUrgent();saveElapsed+=elapsed;if(saveElapsed>3){save();saveElapsed=0;}},500);
 document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelCombatEffects();setSpeed(0);save();}});window.addEventListener('pagehide',()=>save());
 render();fetch('/api/comms').then(r=>r.json()).then(d=>{serverInfo=d;channel=d.configured?'AI 통신 준비됨':'로컬 시뮬레이션';if(['comms','data','crew'].includes(tab))renderDetail();}).catch(()=>{channel='통신 서버 미연결';});
 
