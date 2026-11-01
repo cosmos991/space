@@ -1,5 +1,5 @@
 import {createHash,randomUUID,timingSafeEqual} from 'node:crypto';
-import {validArchive,validObject,validArchiveId} from '../archive-schema.js';
+import {validArchive,validImageCatalog,validObject,validArchiveId} from '../archive-schema.js';
 const bucket='asterion-art';
 const send=(res,status,data)=>{res.statusCode=status;res.setHeader('Content-Type','application/json; charset=utf-8');res.setHeader('Cache-Control','no-store');res.end(JSON.stringify(data));};
 function config(){const url=process.env.SUPABASE_URL;return !!(url&&/^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/.test(url)&&process.env.SUPABASE_SERVICE_ROLE_KEY&&process.env.GAME_ACCESS_CODE);}
@@ -21,12 +21,13 @@ export default async function handler(req,res){
  const request=async(path,options={})=>{const r=await fetch(root+path,{...options,headers:{apikey:secret,Authorization:'Bearer '+secret,...options.headers},signal:AbortSignal.timeout(20000)});if(!r.ok&&options.method==='DELETE'&&r.status===403)throw Error('저장본 삭제 권한이 없습니다. Supabase 초기 SQL의 service_role DELETE 권한을 확인하세요.');if(!r.ok)throw Error('DB 요청에 실패했습니다. 연결 설정·초기 SQL·이미지 저장소를 확인하세요.');return r;};
  try{
   if(req.method==='GET'){
+   if(action==='catalog'){const seed=Number(q.get('seed'));if(!Number.isSafeInteger(seed)||seed<1||seed>4294967295)return send(res,400,{error:'우주 식별자가 유효하지 않습니다.'});const r=await request('/rest/v1/asterion_archives?world_seed=eq.'+seed+'&summary=eq.IMAGECATALOG&select=payload,created_at&order=created_at.desc&limit=1'),rows=await r.json(),images=rows[0]?.payload?.images||[];if(!validImageCatalog(seed,images))return send(res,422,{error:'이미지 목록 검증에 실패했습니다.'});const events=await request('/rest/v1/asterion_archives?world_seed=eq.'+seed+'&summary=eq.IMAGEVERSION&select=payload&order=created_at.asc&limit=2000'+(rows[0]?.created_at?'&created_at=gt.'+encodeURIComponent(rows[0].created_at):''));for(const row of await events.json()){const p=row.payload;if(p?.format!=='asterion-image-version'||typeof p.target!=='string'||!/^(ship|planet|place|person):[a-zA-Z0-9:_-]{1,160}$/.test(p.target))throw Error('이미지 자동 기록이 유효하지 않습니다.');const key=seed+':'+p?.target,candidate={key,active:p?.apply?p.asset?.id:null,versions:[p?.asset]};if(!validImageCatalog(seed,[candidate]))throw Error('이미지 자동 기록이 유효하지 않습니다.');let record=images.find(x=>x.key===key);if(!record){record={key,active:null,versions:[]};images.push(record);}if(!record.versions.some(v=>v.id===p.asset.id))record.versions.unshift(p.asset);record.versions=record.versions.slice(0,12);if(p.apply)record.active=p.asset.id;if(record.active&&!record.versions.some(v=>v.id===record.active))record.active=null;}if(!validImageCatalog(seed,images))throw Error('이미지 목록 한도를 확인하세요.');return send(res,200,{images});}
    if(action==='usage'){
-    const countResponse=await request('/rest/v1/asterion_archives?select=id',{method:'HEAD',headers:{Prefer:'count=exact'}}),range=countResponse.headers.get('content-range')||'',count=Number(range.split('/')[1]);let imageBytes=0,imageCount=0,complete=false,unknownSizes=0;const start=Date.now();
+    const countResponse=await request('/rest/v1/asterion_archives?summary=not.in.(IMAGECATALOG,IMAGEVERSION)&select=id',{method:'HEAD',headers:{Prefer:'count=exact'}}),range=countResponse.headers.get('content-range')||'',count=Number(range.split('/')[1]);let imageBytes=0,imageCount=0,complete=false,unknownSizes=0;const start=Date.now();
     for(let offset=0;offset<20000&&Date.now()-start<25000;offset+=1000){const r=await request('/storage/v1/object/list/'+bucket,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prefix:'',limit:1000,offset,sortBy:{column:'name',order:'asc'}})}),files=await r.json();if(!Array.isArray(files))throw Error('이미지 용량 조회 결과가 유효하지 않습니다.');for(const file of files){if(!file.id)continue;imageCount++;const size=Number(file.metadata?.size);if(Number.isFinite(size)&&size>=0)imageBytes+=size;else unknownSizes++;}if(files.length<1000){complete=true;break;}}
     return send(res,200,{usage:{archiveCount:Number.isSafeInteger(count)&&count>=0?count:null,imageCount,imageBytes,complete,unknownSizes,checkedAt:Date.now()}});
    }
-   if(action==='list'){const r=await request('/rest/v1/asterion_archives?select=id,created_at,world_seed,summary&order=created_at.desc&limit=20');return send(res,200,{archives:await r.json()});}
+   if(action==='list'){const r=await request('/rest/v1/asterion_archives?summary=not.in.(IMAGECATALOG,IMAGEVERSION)&select=id,created_at,world_seed,summary&order=created_at.desc&limit=20');return send(res,200,{archives:await r.json()});}
    if(action==='get'){
     const id=q.get('id');if(!validArchiveId(id))return send(res,400,{error:'저장본 ID가 유효하지 않습니다.'});
     const r=await request('/rest/v1/asterion_archives?id=eq.'+id+'&select=payload&limit=1'),rows=await r.json();
@@ -47,6 +48,7 @@ export default async function handler(req,res){
    return send(res,400,{error:'지원하지 않는 조회입니다.'});
   }
   let body=req.body;try{if(typeof body==='string')body=JSON.parse(body);}catch{return send(res,400,{error:'잘못된 요청 형식입니다.'});}
+  if(body?.action==='catalog'){if(!validImageCatalog(body.seed,body.images))return send(res,400,{error:'이미지 메타데이터가 유효하지 않습니다.'});const id=randomUUID();await request('/rest/v1/asterion_archives',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,world_seed:body.seed,summary:'IMAGECATALOG',payload:{format:'asterion-image-catalog',version:1,images:body.images}})});return send(res,201,{saved:true});}
   if(body?.action==='delete'){
    if(!validArchiveId(body.id)||body.confirmId!==body.id)return send(res,400,{error:'삭제할 저장본 확인이 필요합니다.'});
    const r=await request('/rest/v1/asterion_archives?id=eq.'+body.id,{method:'DELETE',headers:{Prefer:'return=representation'}}),rows=await r.json();if(!Array.isArray(rows)||!rows.length)return send(res,404,{error:'이미 삭제되었거나 존재하지 않는 저장본입니다.'});return send(res,200,{deleted:body.id,imagesRetained:true});

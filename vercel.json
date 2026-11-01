@@ -11,8 +11,8 @@
       "includeFiles": "{ships-data,galaxy-gen,usage,crew-data}.js"
     },
     "api/images.js": {
-      "maxDuration": 120,
-      "includeFiles": "{ships-data,novelai-images,image-request,usage,crew-data}.js"
+      "maxDuration": 180,
+      "includeFiles": "{cloud-image-store,ships-data,novelai-images,image-request,usage,crew-data}.js"
     },
     "api/archive.js": {
       "maxDuration": 60,
