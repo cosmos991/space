@@ -19,3 +19,6 @@ for(const id of ['ore','tech','scrap','alloy','core','special','frame','mechanis
 
 await mkdir('dist/assets/mining',{recursive:true});
 for(const id of ['basic','reinforced','precision'])await copyFile('assets/mining/'+id+'-v1.webp','dist/assets/mining/'+id+'-v1.webp');
+
+await mkdir('dist/assets/bridge',{recursive:true});
+for(const id of ['station','planet'])await copyFile('assets/bridge/'+id+'-v1.webp','dist/assets/bridge/'+id+'-v1.webp');

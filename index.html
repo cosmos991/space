@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ko">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#080e15"><meta name="description" content="아스테리온 항성계에서 시작하는 자유 항해. 함교 지휘형 우주 시뮬레이션."><title>ASTERION · 함교 지휘 시스템</title><link rel="stylesheet" href="/style.css"></head>
-<body class="entry-active quiet-command">
+<body class="entry-active quiet-command refined-bridge">
 <section id="entry-screen" role="dialog" aria-modal="true" aria-label="함교 접속" aria-live="polite"><div class="entry-card"><h1>함교 연결 준비 중…</h1></div></section>
 <div class="shell">
  <aside class="rail"><a class="brand" href="#" data-home aria-label="아스테리온 함교">A<span>✦</span></a><span class="rail-label">BRIDGE OS</span>
@@ -13,12 +13,12 @@
   <button data-menu="people" aria-haspopup="dialog" aria-controls="workspace-panel" aria-label="승무원·통신"><span>◉</span><small>승무원·통신</small></button>
  </nav><div class="rail-utilities"><button data-menu="records" aria-label="기록"><span>≡</span><small>기록</small></button><button data-menu="settings" aria-label="설정"><span>⚙</span><small>설정</small></button></div><button id="help" title="함장 안내" aria-label="함장 안내">?</button><div class="rail-bottom">V.02<br>BRIDGE</div></aside>
  <main class="workspace">
-  <header><div class="wordmark">ASTERION <small>QUIET COMMAND / BRIDGE</small></div><div class="connection"><i></i> CSV 노마드 · 연결 정상</div><div id="clock"></div><span id="save-status" role="status">기기 자동 저장</span><button id="save" class="quiet">저장</button><button id="load" class="quiet">불러오기</button></header>
+  <header class="bridge-topbar"><div class="wordmark">ASTERION <small>FLIGHT COMMAND SYSTEM</small></div><section id="stats" class="stats" aria-label="핵심 함선 현황"></section></header>
   <section id="region-news" class="region-news" aria-label="지역별 주요 소식"></section>
   <button id="route-warning" class="route-warning-banner" data-tab="navigation" hidden aria-live="polite"></button>
-  <section id="stats" class="stats" aria-label="핵심 함선 현황"></section>
-  <div class="bridge-heading"><div><div class="eyebrow">COMMAND DECK / SECTOR 01</div><h1>아스테리온 항성계<span>.</span></h1></div><button id="current-location-button" data-current-location class="quiet" aria-haspopup="dialog">현재 구역 행동 ↗</button></div>
+
   <div class="command-layout"><section class="panel system-panel" aria-label="항성계 항법">
+  <div class="bridge-heading"><div><div class="eyebrow">COMMAND DECK / SECTOR 01</div><h1>아스테리온 항성계<span>.</span></h1></div><button id="current-location-button" data-current-location class="quiet" aria-haspopup="dialog">현재 구역 행동 ↗</button></div>
    <div class="map-wrap"><svg id="system-map" viewBox="0 0 800 530" role="group" aria-label="목적지를 선택할 수 있는 아스테리온 항성계 지도"></svg><div class="map-legend"><span><i class="cyan"></i> 연합 관할</span><span><i class="amber"></i> 기업 구역</span><span><i class="purple"></i> 미탐사</span></div><div class="map-coordinate mono">LOCAL SECTOR / 8 DESTINATIONS<br>목적지를 선택하면 항법 패널이 열립니다</div></div>
    <div id="craft-goal" aria-label="제작 목표 진행"></div><div class="bridge-controls"><div id="travel" class="travel"></div><div class="time-controls"><div><span class="status-dot"></span><span id="sim-status">시뮬레이션 정지</span></div><div id="speeds"><button data-speed="0" class="active" aria-label="일시정지">Ⅱ</button><button data-speed="1">1×</button><button data-speed="4">4×</button><button data-speed="12">12×</button></div></div></div>
   </section>
@@ -26,6 +26,7 @@
   <section id="chart-controls" aria-label="항성계 지도 좌표와 필터"></section>
   <button id="bridge-alert" class="bridge-alert" data-tab="navigation" hidden></button>
   <button id="captain-pad" data-data-section="home" aria-haspopup="dialog" aria-controls="workspace-panel"><span>▤</span> 함장 데이터 <small>기함 · 임무 · 최근 연락</small><span>⌃</span></button>
+  <div class="bridge-session"><div class="connection"><i></i> CSV 노마드 · 연결 정상</div><div id="clock"></div><span id="save-status" role="status">기기 자동 저장</span><button id="save" class="quiet">저장</button><button id="load" class="quiet">불러오기</button></div>
   <footer><span><i class="status-dot"></i> ASTERION BRIDGE SYSTEM <b>02.0</b></span><span>왼쪽은 주요 업무 · 아래는 함장 요약</span><button id="reset" class="quiet">새로 시작하기</button></footer>
  </main>
 </div>
