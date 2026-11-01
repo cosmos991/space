@@ -1,3 +1,4 @@
+import {utilityCargoPenalty} from './market-modules.js';
 export const SHIP_GRADES=['일반','고급','희귀','영웅','전설'];
 export const SHIP_ROLES=['탐사선','수송선','전투선','산업선','다목적선'];
 export const SHIPS=[
@@ -10,6 +11,6 @@ export const SHIPS=[
 for(const [i,names]of [['보이저','아틀라스','랜서','포지','프런티어'],['오디세이','레비아탄','발키리','헤파이스토스','메리디언'],['호라이즌','아크','이지스','타이탄','소버린'],['스타시커','월드브리지','에클립스','월드포지','아스테리온']].entries())for(const [role,name]of names.entries())SHIPS.push({id:'grade'+(i+1)+'-role'+role,name,grade:i+1,role,released:false});
 export const shipDesign=id=>SHIPS.find(d=>d.id===id);
 export const activeDesign=s=>shipDesign(s?.fleet?.active)||SHIPS[0];
-export const cargoCapacity=s=>activeDesign(s).cargo;
+export const cargoCapacity=s=>activeDesign(s).cargo-utilityCargoPenalty(s);
 export const YARDS=['haven','forge','freeport'];
 export const MATERIALS={scrap:'금속 스크랩',alloy:'정제 합금',core:'동력 코어',special:'특수 소재',frame:'구조 프레임',mechanism:'정밀 기계 부품',circuit:'정밀 회로',coil:'에너지 코일',armor:'복합 장갑판',stable:'안정화 코어'};

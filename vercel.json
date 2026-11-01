@@ -8,11 +8,11 @@
     },
     "api/explore.js": {
       "maxDuration": 60,
-      "includeFiles": "{ships-data,galaxy-gen,usage,crew-data}.js"
+      "includeFiles": "{market-modules,ships-data,galaxy-gen,usage,crew-data}.js"
     },
     "api/images.js": {
       "maxDuration": 180,
-      "includeFiles": "{cloud-image-store,ships-data,novelai-images,image-request,usage,crew-data}.js"
+      "includeFiles": "{market-modules,cloud-image-store,ships-data,novelai-images,image-request,usage,crew-data}.js"
     },
     "api/archive.js": {
       "maxDuration": 60,
@@ -20,7 +20,7 @@
     },
     "api/crew-prompt.js": {
       "maxDuration": 60,
-      "includeFiles": "{ships-data,usage,crew-data}.js"
+      "includeFiles": "{market-modules,ships-data,usage,crew-data}.js"
     },
     "api/mission-brief.js": {
       "maxDuration": 30,

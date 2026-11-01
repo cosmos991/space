@@ -1,3 +1,4 @@
+import {hasUtility} from './market-modules.js';
 import {place} from './world-data.js';
 import {activeDesign,cargoCapacity} from './ships-data.js';
 import {usedCargo} from './cargo.js';
@@ -28,7 +29,12 @@ export function miningStatus(s,{action,type='basic',vein=0,safety=30}={}){
  }
  if(!reason&&place(s.location,s)?.type!=='belt')reason='소행성대에서 광맥을 탐색하세요.';
  if(!reason&&m.job)reason='투입 중인 채굴기를 먼저 회수하세요.';
- if(action==='scan'){
+ if(action==='analyse'){
+  if(!reason&&!hasUtility(s,'analyser'))reason='먼저 지층 분석기를 장착하세요.';
+  if(!reason&&(!Number.isInteger(vein)||!site?.veins[vein]||site.veins[vein].remaining<=0))reason='분석할 광맥을 선택하세요.';
+  if(!reason&&site.veins[vein].analysis>=2)reason='이미 위험도를 분석한 광맥입니다.';
+  if(!reason&&s.fuel<4)reason='사전 분석에는 연료 4가 필요합니다.';
+ }else if(action==='scan'){
   if(!reason&&site?.veins.some(v=>v.remaining>0))reason='발견한 광맥이 남아 있습니다.';
   if(!reason&&!site&&m.sites.length>=128)reason='광맥 기록 보관 한도입니다.';
   if(!reason&&s.fuel<2)reason='탐색 연료 2가 필요합니다.';
@@ -47,6 +53,7 @@ function stop(s,text){const m=s.mining,j=m.job;if(j)text+=' 운반 합계: 광�
 export function executeMining(s,order){const st=miningStatus(s,order);if(!st.eligible)throw Error(st.reason);const m=migrateMining(s),{action,type='basic',vein=0,safety=30}=order;
  if(action==='recover')return stop(s,'채굴기 수동 회수. 운반 완료한 재료는 모두 보존됩니다.');
  if(action==='craft'||action==='repair'){s.credits-=st.quote.fee;for(const [k,n]of Object.entries(st.quote.inputs))s.fleet.materials[k]-=n;m.rigs[type]=RIGS[type].hp;return RIGS[type].name+(action==='craft'?' 제작 완료.':' 수리 완료.');}
+ if(action==='analyse'){s.fuel-=4;miningSite(s).veins[vein].analysis=2;return '광맥 '+(vein+1)+' 사전 분석 완료 · 위험도 공개 · 조성 비율은 채굴 후 확인합니다.';}
  if(action==='scan'){const old=miningSite(s),next=newSite(s,(old?.round||0)+1);if(old)m.sites[m.sites.indexOf(old)]=next;else m.sites.push(next);s.fuel-=2;return '광맥 4개 발견. 조성과 위험도는 채굴하며 분석합니다.';}
  s.fuel-=3;m.job={system:s.galaxy.current,location:s.location,type,vein,safety,elapsed:0,cycles:0,ore:0,special:0};m.last=null;return RIGS[type].name+' 투입. 채굴 주기 3h · 내구도 '+safety+'%에서 자동 회수.';
 }
@@ -60,11 +67,11 @@ export function advanceMining(s,hours){const m=s.mining,j=m?.job;if(!j)return []
   if(usedCargo(s)>=cargoCapacity(s)){messages.push(stop(s,'화물칸이 가득 차 자동 회수했습니다.'));break;}
   if(s.fleet.materials.special>=MATERIAL_LIMIT){messages.push(stop(s,'특수 소재 창고가 가득 차 자동 회수했습니다.'));break;}
   const rand=()=>{v.seed=(Math.imul(v.seed,1664525)+1013904223)>>>0;return v.seed/4294967296;};
-  const risk=Math.max(0,v.danger-d.resist),accident=rand()<risk/140,damage=d.wear+(accident?Math.ceil(risk*(.2+rand()*.3)):0);
+  const risk=Math.max(0,v.danger-d.resist),accident=rand()<risk/140,damage=d.wear+(hasUtility(s,'thermal')?4:0)+(accident?Math.ceil(risk*(.2+rand()*.3)):0);
   m.rigs[j.type]=Math.max(0,m.rigs[j.type]-damage);v.analysis=Math.min(3,v.analysis+d.analysis);v.cycles++;j.cycles++;
   if(m.rigs[j.type]===0){messages.push(stop(s,'채굴기 파손! 이번 주기 수확은 유실되었습니다. 이전 운반분은 보존됩니다. 정거장에서 복구하세요.'));break;}
-  const amount=Math.min(v.remaining,Math.floor(d.yield*activeDesign(s).mining));let ore=0,special=0;
-  for(let n=0;n<amount;n++){if(rand()<Math.min(.85,v.ratio/100*d.rare)){if(s.fleet.materials.special+special>=MATERIAL_LIMIT)break;special++;}else{if(usedCargo(s)+ore>=cargoCapacity(s))break;ore++;}}
+  const amount=Math.min(v.remaining,Math.floor((d.yield+(hasUtility(s,'thermal')?2:0))*activeDesign(s).mining));let ore=0,special=0;
+  for(let n=0;n<amount;n++){if(rand()<Math.min(.85,v.ratio/100*d.rare*(hasUtility(s,'thermal')?1.4:1))){if(s.fleet.materials.special+special>=MATERIAL_LIMIT)break;special++;}else{if(usedCargo(s)+ore>=cargoCapacity(s))break;ore++;}}
   v.remaining-=ore+special;s.cargo.ore+=ore;s.fleet.materials.special+=special;j.ore+=ore;j.special+=special;
   messages.push(`채굴 ${j.cycles}주기 · 광물 +${ore}t · 특수 소재 +${special} · 내구도 -${damage}${accident?' · 낙석 충격':''}`);
   if(v.remaining===0)messages.push(stop(s,'광맥 고갈. 채굴기를 자동 회수했습니다.'));
