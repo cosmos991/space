@@ -1,3 +1,4 @@
+import {bridgeOverviewHTML} from './bridge-ui.js';
 import {createNotificationCenter,constructionNotice} from './flight-notifications.js';
 import {specialMarketsHTML,specialMarketReviewHTML} from './special-market-ui.js';
 import {marketOffers,courierOffer} from './special-markets.js';
@@ -141,7 +142,10 @@ workspacePanel.addEventListener('click',e=>{if(e.target!==workspacePanel)return;
 const urgentComms=createUrgentComms({dialog:$('#urgent-comms'),getState:()=>state,onPresent:()=>{setSpeed(0);save();},onAcknowledge:()=>save(),onAction:d=>{if(d.target.kind==='finance'){openPanel('assets');return;}if(d.target.kind==='supply'){const next=supplyDestination(state);selected=next.location;if(d.target.resource==='food'){order.good='food';order.buy=true;order.quantity=5;}openPanel(next.panel);return;}if(d.target.kind==='mission'){focusedFaction=d.target.faction;selectedMission=d.target.id;reviewMission=d.target.id;openPanel('missions');}else{selected=d.target.location||state.location;openPanel(state.combat?.status==='active'?'combat':'navigation');}}});
 function syncUrgent(){urgentComms.update(!entryAuthorized||document.body.classList.contains('entry-active')||cloud.busy||busy||combatAnimating||['modal','mission-feedback','result-feedback'].some(id=>$('#'+id).open));}
 function renderNews(){const issues=regionalIssues(state),signature=JSON.stringify([issues,newsPaused]);if(signature===newsSignature)return;newsSignature=signature;$('#region-news').innerHTML=tickerHTML(issues,newsPaused);}
+let bridgeOverviewSignature='';
+function renderBridgeOverview(){const p=place(state.location,state),id=(p.type==='planet'?'planet:':'place:')+p.id;const html=bridgeOverviewHTML(state,imageSource(state,id));if(html!==bridgeOverviewSignature){bridgeOverviewSignature=html;$('#bridge-overview').innerHTML=html;}}
 function renderMap(){
+ renderBridgeOverview();
  $('.bridge-heading h1').textContent=currentSystem(state).name+' 항성계';$('#system-map').setAttribute('aria-label',currentSystem(state).name+' 항성계 지도');$('.map-coordinate').textContent='LOCAL SECTOR / '+placesFor(state).length+' DESTINATIONS · 목적지를 선택하면 항법 패널이 열립니다';
  $('#system-map').innerHTML=systemMapHTML(state,selected,{filter:chartFilter,point:chartPoint});$('#chart-controls').innerHTML=chartListHTML(state,chartFilter);
  const current=place(state.location,state),r=state.travel,button=$('#current-location-button');
@@ -459,7 +463,7 @@ async function generateSystemPlaceImages(systemId,retry=false){
 document.addEventListener('click',e=>{const b=e.target.closest('[data-place-images-resume],[data-place-images-retry]');if(!b)return;generateSystemPlaceImages(b.dataset.placeImagesResume||b.dataset.placeImagesRetry,b.hasAttribute('data-place-images-retry'));});
 
 let imageRefreshTimer=null,catalogSaveQueue=Promise.resolve();const catalogSignatures=new Map();
-configureRemoteImages({code:()=>entryAuthorized?accessCode:'',changed:()=>{if(imageRefreshTimer!==null)return;imageRefreshTimer=setTimeout(()=>{imageRefreshTimer=null;if(entryAuthorized){renderDetail();renderShip();}},60);}});
+configureRemoteImages({code:()=>entryAuthorized?accessCode:'',changed:()=>{if(imageRefreshTimer!==null)return;imageRefreshTimer=setTimeout(()=>{imageRefreshTimer=null;if(entryAuthorized){renderDetail();renderShip();renderBridgeOverview();}},60);}});
 function referenceImages(s){return exportWorldImages(s).map(r=>{const versions=r.versions.filter(v=>v.object).map(v=>{const {data,...meta}=v;return meta;});return {...r,active:versions.some(v=>v.id===r.active)?r.active:null,versions};}).filter(r=>r.versions.length);}
 async function persistImageCatalog(s,images=referenceImages(s)){const signature=JSON.stringify(images),seed=s.galaxy.seed;if(catalogSignatures.get(seed)===signature)return;catalogSaveQueue=catalogSaveQueue.catch(()=>{}).then(async()=>{if(catalogSignatures.get(seed)===signature)return;await archiveRequest(accessCode,'catalog',{action:'catalog',seed,images});catalogSignatures.set(seed,signature);try{localStorage.removeItem('asterion-image-pending:'+seed);}catch{}});return catalogSaveQueue;}
 async function migrateLegacyImages(){if(imagePending||generating||cloud.busy)return;const origin=state;if(!exportWorldImages(origin).some(r=>r.versions.some(v=>v.data)))return;imagePending=true;setSpeed(0);renderDetail();try{await migrateImagesToCloud(origin,async image=>(await archiveRequest(accessCode,'upload',{action:'upload',image})).object,images=>persistImageCatalog(origin,images));save();toast('기존 이미지 원본을 클라우드로 옮겼습니다. 브라우저에는 참조와 제한된 캐시만 보관합니다.');}catch(error){toast('기존 원본을 유지했습니다. '+error.message,true);}finally{imagePending=false;renderDetail();}}
