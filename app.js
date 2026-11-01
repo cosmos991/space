@@ -1,3 +1,4 @@
+import {processPlaceImages} from './place-images.js';
 import {financeHTML,financeReviewHTML} from './finance-ui.js';
 import {financeOrder} from './finance.js';
 let financeReview=null;
@@ -37,7 +38,7 @@ import {createBundle,decodeBundle,readBundle,writeBundle} from './save-bundle.js
 import {decodeSave,readProgress,writeProgress,slotKey} from './save-store.js';
 const PERSONAL_PANELS=['data','ship','crew','assets','equipment'];
 import {archiveRequest,saveArchive,prepareArchiveRestore,cloudHTML} from './archive-client.js';
-import {loadImages,exportWorldImages,replaceWorldImages,getPositiveBase,setPositiveBase,imageTargets,imagePrompt,imageSlot,imagesHTML,imageSource,addImage,selectImage,removeImage} from './image-assets.js';
+import {loadImages,imageRecord,exportWorldImages,replaceWorldImages,getPositiveBase,setPositiveBase,imageTargets,imagePrompt,imageSlot,imagesHTML,imageSource,addImage,selectImage,removeImage} from './image-assets.js';
 import {galaxyHTML,generationHTML} from './galaxy-ui.js';
 import {currentSystem,beginExploration,completeExploration,failExploration,jumpSystem,updateRules} from './galaxy.js';
 import {placesFor} from './world-data.js';
@@ -247,6 +248,7 @@ async function exploreSector(coord,resume=false){
  if(generating)return;let job;try{job=resume?state.galaxy.job:beginExploration(state,coord);if(!job||job.status!=='pending')throw Error('재개할 탐색이 없습니다.');}catch(e){toast(e.message,true);return;}
  const runState=state;generating=true;setSpeed(0);save();openPanel('galaxy');const requestId=crypto.randomUUID(),time=Date.now(),started=performance.now();let metadata=null,ok=false;
  try{const response=await fetch('/api/explore',{method:'POST',headers:{'Content-Type':'application/json',...(accessCode?{'X-Game-Access-Code':accessCode}:{})},body:JSON.stringify({coord:job.coord,seed:job.seed,rules:job.rules}),signal:AbortSignal.timeout(55000)});const data=await response.json();metadata=data;if(!response.ok)throw Error(data.error||'AI 탐색 실패');if(state!==runState)return;const priorGalaxy=structuredClone(state.galaxy);completeExploration(state,job.id,data.system);if(!save()){state.galaxy=priorGalaxy;for(const c of data.system.people)delete state.crew.records[c.id];throw Error('저장 공간이 부족해 새 발견을 보존하지 못했습니다. 기존 세계는 유지했습니다.');}ok=true;toast(data.system.name+' 항성계 발견 완료');}catch(e){if(state===runState){failExploration(state,job.id,e.message);save();}toast(e.message,true);}finally{generating=false;trackRequest({id:requestId,time,duration:performance.now()-started,faction:'exploration',mode:metadata?.mode||'unknown',model:metadata?.model||'미확인',usage:metadata?.usage,ok});if(state===runState)render();}
+ if(ok&&state===runState&&state.galaxy.job?.id===job.id)await generateSystemPlaceImages(state.galaxy.job.systemId);
 }
 document.addEventListener('submit',e=>{if(e.target.id!=='generation-rules-form')return;e.preventDefault();const values=Object.fromEntries(new FormData(e.target));for(const key of Object.keys(values))if(key!=='tone')values[key]=Number(values[key]);act(()=>{updateRules(state,values);generationPreview=false;toast('새 생성 규칙을 저장했습니다. 다음 탐색부터 적용됩니다.');});});
 
@@ -429,3 +431,17 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-signal-inv
 function reviewFinance(order){if(cloud.busy||busy||generating||imagePending)throw Error('진행 중인 작업을 마친 뒤 이용하세요.');setSpeed(0);const next=structuredClone(state),message=financeOrder(next,order);financeReview={order,state};showFeedbackDialog($('#modal'),financeReviewHTML(state,next,message));}
 document.addEventListener('submit',e=>{if(!e.target.matches('[data-finance-form]'))return;e.preventDefault();try{const f=new FormData(e.target),raw=Number(f.get('amount')),amount=Math.round(raw*100);if(f.has('amount')&&(!Number.isFinite(raw)||Math.abs(raw*100-amount)>.00001))throw Error('금액은 소수 둘째 자리까지 입력하세요.');reviewFinance({action:f.get('action'),amount,id:Number(f.get('id')),days:Number(f.get('days')),name:f.get('name'),auto:f.get('auto')==='on'});}catch(error){toast(error.message,true);}});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-finance-action],[data-finance-confirm]');if(!b)return;try{if(b.hasAttribute('data-finance-confirm')){if(cloud.busy||busy||generating||imagePending)throw Error('진행 중인 작업을 먼저 마치세요.');if(!financeReview||financeReview.state!==state)throw Error('저장본이 변경되었습니다. 다시 검토하세요.');act(()=>{const message=financeOrder(state,financeReview.order);financeReview=null;$('#modal').close();toast(message);});}else reviewFinance({action:b.dataset.financeAction,id:Number(b.dataset.financeId),amount:Number(b.dataset.financeAmount),auto:b.dataset.financeAuto==='true'});}catch(error){toast(error.message,true);}});
+
+async function generateSystemPlaceImages(systemId,retry=false){
+ if(generating||imagePending||cloud.busy){toast('진행 중인 작업을 마친 뒤 재개하세요.',true);return;}const origin=state;generating=true;imagePending=true;setSpeed(0);renderDetail();
+ try{await imagesReady;await processPlaceImages(origin,systemId,{
+ hasImage:id=>imageRecord(origin,id).versions.length>0,
+ cancelled:()=>state!==origin,
+ now:()=>Date.now(),wait:ms=>new Promise(resolve=>setTimeout(resolve,ms)),
+ persist:async()=>{if(state!==origin)throw Error('저장본이 변경되어 작업을 중단했습니다.');if(!save())throw Error('작업 상태를 저장하지 못했습니다.');await fullSaveQueue;renderDetail();},
+ generate:async(p,prompt)=>{const id=crypto.randomUUID(),started=Date.now();let result={},ok=false;try{const response=await fetch('/api/images',{method:'POST',headers:{'Content-Type':'application/json','x-game-access-code':accessCode},body:JSON.stringify({kind:p.type==='planet'?'planet':'place',prompt,quality:'low',provider:'openai'}),signal:AbortSignal.timeout(115000)});result=await response.json();if(!response.ok)throw Error(result.error||'장소 이미지 생성 실패');ok=true;return result;}finally{trackRequest({id,time:started,duration:Date.now()-started,mode:result.mode||'unknown',model:result.model||'gpt-image-2',faction:'image:place',ok,usage:result.usage});}},
+ store:async(id,result,prompt)=>{const version=await addImage(origin,id,result.image,prompt,result.model,{provider:'openai'});await selectImage(origin,id,version);}
+ },{retry});const jobs=origin.galaxy.placeImages.filter(j=>j.system===systemId);toast(jobs.every(j=>j.status==='done')?'장소 이미지 생성·적용 완료':'장소 이미지 작업이 중단되었습니다. 성간 화면에서 상태를 확인하세요.',jobs.some(j=>j.status==='failed'));}
+ catch(error){toast(error.message,true);}finally{generating=false;imagePending=false;if(state===origin){save();render();}}
+}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-place-images-resume],[data-place-images-retry]');if(!b)return;generateSystemPlaceImages(b.dataset.placeImagesResume||b.dataset.placeImagesRetry,b.hasAttribute('data-place-images-retry'));});
